@@ -7,21 +7,36 @@
 ----------------------------------------------------------------------------------------
 
 ## General
-This package was developed to host a suite of control algorithms developed by Lawrence Berkeley National Laboratory's [Windows Group](https://windows.lbl.gov/). Most controls asre based on [Model Predictive Control](https://en.wikipedia.org/wiki/Model_predictive_control). This framework utilizes the Distributed Optimal Energy Resources [DOPER](https://github.com/LBNL-ETA/DOPER) to implement the algorithms.
+This package was developed to host a suite of control algorithms developed by Lawrence Berkeley National Laboratory's [Windows Group](https://windows.lbl.gov/). Most controls are based on [Model Predictive Control](https://en.wikipedia.org/wiki/Model_predictive_control). This framework utilizes the Distributed Optimal Energy Resources ([DOPER](https://github.com/LBNL-ETA/DOPER)) to implement the algorithms.
 
-*Please note that the AFC package and especially the examples are still under development. Please open an issue for specific questions*
+The functionality of an *Integrated Controller* (i.e., Advanced Fenestration Control) is illustrated in the following figure. Setpoints for light levels and occupant glare sensitivity are provided as inputs. At each five minute timestep the controller receives updated information from exterior and interior sensors and controls the elctric lights and dynamc facade (e.g., motorized blinds) accordingly. 
+![illustrate_system.jpg](https://github.com/LBNL-ETA/AFC/tree/master/docs/illustrate_system.jpg)
+
+*Please note that the AFC package and especially the examples are still under development. Please open an issue for specific questions.*
 
 ## Getting Started
 The following link permits users to clone the source directory containing the [AFC](https://github.com/LBNL-ETA/AFC) package.
 
-The package depends on external modules which can be installed from pypi with `pip install -r requirements.txt`.
-
-TBD
+The package depends on external modules which can be installed from pypi with ```python
+pip install -r requirements.txt
+```.
 
 ## Example
-To illustrate and test its functionality, each module executes some tests, when called as `main`.
+To test the installation and illustrate the functionality of AFC, the following command can be executed to run the [BasicTest.py](https://github.com/LBNL-ETA/AFC/tree/master/examples/dummy.py).
 
-Example Jupyter notebooks can be found [here](https://github.com/LBNL-ETA/AFC/tree/master/examples) where a full controller stack, with different time constants, is illustrated.
+```python
+python examples/BasicTest.py
+```
+
+The output should be:
+
+```
+==> Completed 5 out of 5 tests. <==
+Congratulations, the Advanced Fenestration Control was successfully installed!
+Thank you for your interest and checkout more examples in the example folder!
+```
+
+Additional examples with interactive Jupyter Notebooks can be found in the [examples](https://github.com/LBNL-ETA/AFC/tree/master/examples).
 
 ## License
 Advanced Fenestration Control (AFC) Copyright (c) 2022, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.
@@ -33,4 +48,4 @@ NOTICE.  This Software was developed under funding from the U.S. Department of E
 ## Cite
 To cite the AFC package, please use:
 
-TBD
+Gehbauer, C., Blum, D., Wang, T. and Lee, E.S., 2020. An assessment of the load modifying potential of model predictive controlled dynamic facades within the California context. Energy and Buildings, 210, p.109762.
