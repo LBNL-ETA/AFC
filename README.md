@@ -18,9 +18,7 @@ The functionality of an *Integrated Controller* (i.e., Advanced Fenestration Con
 ## Getting Started
 The following link permits users to clone the source directory containing the [AFC](https://github.com/LBNL-ETA/AFC) package.
 
-The package depends on external modules which can be installed from pypi with ```python
-pip install -r requirements.txt
-```.
+The package depends on external modules which can be installed from pypi with ```pip install -r requirements.txt```.
 
 ## Example
 To test the installation and illustrate the functionality of AFC, the following command can be executed to run the [BasicTest.py](https://github.com/LBNL-ETA/AFC/blob/master/examples/dummy.py).
