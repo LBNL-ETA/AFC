@@ -1,7 +1,7 @@
 # Advanced Fenestration Control (AFC)
 
-![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/Pylint/badge.svg)
-![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/Python%20application/badge.svg)
+![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/Syntax/badge.svg)
+![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/UnitTests/badge.svg)
 
 #### Predictive Control Solution for Advanced Fenestration and Integrated Energy Systems
 ----------------------------------------------------------------------------------------
