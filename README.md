@@ -11,7 +11,7 @@ This package was developed to host a suite of control algorithms developed by La
 
 The functionality of an *Integrated Controller* (i.e., Advanced Fenestration Control) is illustrated in the following figure. Setpoints for light levels and occupant glare sensitivity are provided as inputs. At each five minute timestep the controller receives updated information from exterior and interior sensors and controls the elctric lights and dynamc facade (e.g., motorized blinds) accordingly.
 
-![illustrate_system.jpg](https://github.com/LBNL-ETA/AFC/tree/master/docs/illustrate_system.jpg)
+![illustrate_system.jpg](https://github.com/LBNL-ETA/AFC/blob/master/docs/illustrate_system.jpg)
 
 *Please note that the AFC package and especially the examples are still under development. Please open an issue for specific questions.*
 
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ```.
 
 ## Example
-To test the installation and illustrate the functionality of AFC, the following command can be executed to run the [BasicTest.py](https://github.com/LBNL-ETA/AFC/tree/master/examples/dummy.py).
+To test the installation and illustrate the functionality of AFC, the following command can be executed to run the [BasicTest.py](https://github.com/LBNL-ETA/AFC/blob/master/examples/dummy.py).
 
 ```python
 python examples/BasicTest.py
@@ -37,7 +37,7 @@ Congratulations, the Advanced Fenestration Control was successfully installed!
 Thank you for your interest and checkout more examples in the example folder!
 ```
 
-Additional examples with interactive Jupyter Notebooks can be found in the [examples](https://github.com/LBNL-ETA/AFC/tree/master/examples).
+Additional examples with interactive Jupyter Notebooks can be found in the [examples](https://github.com/LBNL-ETA/AFC/blob/master/examples).
 
 ## License
 Advanced Fenestration Control (AFC) Copyright (c) 2022, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy).  All rights reserved.
