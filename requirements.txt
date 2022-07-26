@@ -1,2 +1,5 @@
 pandas
 numpy
+fmlc
+frads @ git+https://github.com/LBNL-ETA/frads@old
+doper @ git+https://github.com/LBNL-ETA/DOPER

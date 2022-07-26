@@ -1,6 +1,8 @@
 # Python compiled files #
 #########################
 *.pyc
+*/build/*
+*.egg*
 
 # JSON files #
 ##############
@@ -10,3 +12,8 @@
 #####################
 *checkpoint.ipynb
 */.ipynb_checkpoints/*
+
+# Other #
+#########
+*/logs/*
+
