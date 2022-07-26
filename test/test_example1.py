@@ -94,7 +94,7 @@ def test1():
     
     # check
     res = ctrl.get_output(keys=['opt_objective','opt_duration','opt_termination','duration'])
-    assert round(res['opt_objective'], 2) == 25.96
+    assert int(res['opt_objective']*1e1)/1e1 == 25.9
     assert res['opt_duration'] < 1
     assert res['opt_termination'] == 'optimal'
     assert res['duration'] < 2
