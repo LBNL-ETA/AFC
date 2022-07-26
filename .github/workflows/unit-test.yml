@@ -23,6 +23,8 @@ jobs:
       run: |
         ver=$(gh release list -R LBNL-ETA/Radiance -L 1 | cut -f 3)
         gh release download $ver -R LBNL-ETA/Radiance -p '*Linux.zip'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Install Radiance
       run: |
         unzip Radiance_*_Linux.zip
