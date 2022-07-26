@@ -36,4 +36,6 @@ jobs:
         rtrace -version
     - name: Test with pytest
       run: |
+        export RAYPATH=.:${{ github.workspace }}/buildRad/radiance/lib
+        export PATH=$PATH:${{ github.workspace }}/buildRad/radiance/bin
         pytest -rx
