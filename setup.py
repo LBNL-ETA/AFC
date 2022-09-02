@@ -39,7 +39,12 @@ setuptools.setup(
     package_data={'': ['*.txt.', '*.md'], 
                   'afc': ['glare/*',
                           'radiance/*',
-                          'utility/*']},
+                          'utility/*',
+                          'resources/*',
+                          'resources/*/*',
+                          'resources/*/*/*',
+                          'resources/*/*/*/*',
+                          'resources/*/*/*/*/*']},
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=install_requires

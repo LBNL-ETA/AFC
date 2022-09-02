@@ -38,6 +38,7 @@ class Controller(eFMU):
             'opt_termination':None,
             'outputs_duration':None,
             'duration':None,
+            'glare_duration':None,
             'uShade':None,
             'uTroom':None,
             'df_output':None}
@@ -100,7 +101,7 @@ class Controller(eFMU):
             
             # Parse input dataframe
             inputs = pd.DataFrame().from_dict(self.input['df_input'])
-            inputs.index = pd.to_datetime(inputs.index, unit='ms')
+            inputs.index = pd.to_datetime(inputs.index)#, unit='ms')
             
             # Setup controller
             if self.init:
@@ -129,7 +130,8 @@ class Controller(eFMU):
                                                            location=self.input['radiance']['location'],
                                                            facade_type=self.input['parameter']['facade']['type'],
                                                            wpi_loc=self.input['radiance']['wpi_loc'],
-                                                           filestruct=filestruct)
+                                                           filestruct=filestruct,
+                                                           dimensions=self.input['radiance']['dimensions'])
                 if self.input['parameter']['wrapper']['precompute_radiance']:
                     wf_all = pd.DataFrame().from_dict(self.input['wf_all'])
                     wf_all.index = pd.to_datetime(wf_all.index, unit='ms')
@@ -227,7 +229,7 @@ class Controller(eFMU):
             if len(pd.isnull(data).to_numpy().any(1).nonzero()[0]) > 0:
                 print(data)
                 data.to_csv('error_controller_inputs.csv')
-                raise ValueError('NAN values in MPC input. Index:', pd.isnull(data).any(1).nonzero()[0])
+                raise ValueError('NAN values in MPC input. Index:', pd.isnull(data).to_numpy().any(1).nonzero()[0])
                 
             # Run optimization
             st1 = time.time()
@@ -242,7 +244,7 @@ class Controller(eFMU):
             #     f.write(json.dumps(cfg))
 
             self.res = self.controller.do_optimization(self.data, parameter=self.input['parameter'],
-                                                       options=self.input['parameter']['options'],
+                                                       options=self.input['parameter']['solver_options'],
                                                        tee=self.input['parameter']['wrapper']['printing'],
                                                        print_error=self.input['parameter']['wrapper']['printing'])
             duration, objective, df, model, result, termination, parameter = self.res
@@ -276,6 +278,47 @@ class Controller(eFMU):
             print('***ERROR***')
             print(traceback.print_exc())
             print(e)
+            
+def make_inputs(parameter, df):
+    df = df.copy(deep=True)
+    
+    # Internal demand
+    df.loc[:, 'plug_load'] = parameter['occupant']['plug_load'] # W
+    df.loc[:, 'occupant_load'] = parameter['occupant']['occupant_load'] # W
+    df.loc[:, 'equipment'] = parameter['occupant']['equipment'] # W
+    
+    # Occupant constraints
+    df.loc[:, 'wpi_min'] = parameter['occupant']['wpi_min']
+    df.loc[:, 'glare_max'] = parameter['occupant']['glare_max']
+    df.loc[:, 'temp_room_max'] = parameter['occupant']['temp_room_max']
+    df.loc[:, 'temp_room_min'] = parameter['occupant']['temp_room_min']
+    
+    # Time-variable schedule
+    if parameter['occupant']['schedule']:
+        print('ERROR: Not implemented!')
+        print(errrrr)
+    
+    
+    # Default inputs
+    df.loc[:, 'generation_pv'] = 0
+    df.loc[:, 'load_demand'] = 0
+    df.loc[:, 'temp_slab_max'] = 1e3
+    df.loc[:, 'temp_slab_min'] = 0
+    df.loc[:, 'temp_wall_max'] = 1e3
+    df.loc[:, 'temp_wall_min'] = 0
+    
+    # Map parameter and make Inputs object
+    inputs = {}
+    inputs['radiance'] = parameter['radiance']
+    inputs['df_input'] = df.to_dict()
+    inputs['wf_all'] = None
+    inputs['facade_initial'] = parameter['facade']['fstate_initial']
+    inputs['temps_initial'] = parameter['zone']['temps_initial']
+    inputs['parameter'] = parameter
+    inputs['paths'] = parameter['radiance']['paths']
+    
+    return inputs
+    
 
 if __name__ == '__main__':
     import os
@@ -295,61 +338,56 @@ if __name__ == '__main__':
     weather = weather.resample('5T').interpolate()
     st = dtm.datetime(dtm.datetime.now().year, 7, 1)
     wf = weather.loc[st:st+pd.DateOffset(hours=24),]
-    df = wf[['DryBulb','DNI','DHI','Wspd']].copy()
-    df = df[df.index.date == df.index[0].date()]
+    wf = wf[['DryBulb','DNI','DHI','Wspd']+['GHI']].copy()
+    wf = wf[wf.index.date == wf.index[0].date()]
     
     # Initialize controller
     ctrl = Controller()
     
     # Get all variables
     print('All Input variables:', ctrl.get_model_variables())
+       
+#     # Provide some inputs
+#     df['wpi_min'] = 500
+#     df['glare_max'] = 0.4
+#     df['generation_pv'] = 0
+#     df['load_demand'] = 0
+#     df['temp_room_max'] = 24
+#     df['temp_room_min'] = 20
+#     df['temp_slab_max'] = 23
+#     df['temp_slab_min'] = 21
+#     df['temp_wall_max'] = 40
+#     df['temp_wall_min'] = 10
+#     df['plug_load'] = 10 # W
+#     df['occupant_load'] = 15 # W
+#     df['equipment'] = 10 # W
     
-    # Provide some wf input
-    #st = weather.index[int(len(weather.index)/2)].date()
+#     # Inputs object
+#     inputs = {}
+#     inputs['radiance'] = {'regenerate': False, 'wwr': 0.4, 'wpi_loc': '23back'}
+#     inputs['radiance']['location'] = {'latitude': 37.7, 'longitude': 122.2, 'view_orient': 0,
+#                                       'timezone': 120, 'orient': 0, 'elevation': 100}
+#     inputs['df_input'] = df.to_dict()
+#     #inputs['wf_all'] = df[['DNI','DHI']].to_dict()
+#     inputs['wf_all'] = None
+#     inputs['facade_initial'] = [3, 3, 3]
+#     inputs['temps_initial'] = [22, 22, 22]
+#     inputs['parameter'] = default_parameter()
+#     #inputs['parameter']['wrapper']['resample_variable_ts'] = False
+#     inputs['parameter']['wrapper']['precompute_radiance'] = False
+#     filestruct, rad_config = get_config('ec', str(inputs['radiance']['wwr']), root=os.path.join(root, 'resources', 'radiance'))
+#     inputs['paths'] = {'rad_config': rad_config}
+#     inputs['paths']['rad_bsdf'] = filestruct['resources']
+#     inputs['paths']['rad_mtx'] = filestruct['matrices']
 
-    
-    print('OVERWRITE')
-    df['DryBulb'] -= 40
-    
-    # Provide some inputs
-    df['wpi_min'] = 500
-    df['glare_max'] = 0.4
-    df['generation_pv'] = 0
-    df['load_demand'] = 0
-    df['temp_room_max'] = 24
-    df['temp_room_min'] = 20
-    df['temp_slab_max'] = 23
-    df['temp_slab_min'] = 21
-    df['temp_wall_max'] = 40
-    df['temp_wall_min'] = 10
-    df['plug_load'] = 10 # W
-    df['occupant_load'] = 15 # W
-    df['equipment'] = 10 # W
-    df.index = (df.index.astype(np.int64) / 10 ** 6).astype(str)
-    #inputs = inputs[testcontroller.dfinputs].to_dict()
-    
-    # Inputs object
-    inputs = {}
-    inputs['radiance'] = {'regenerate': False, 'wwr': 0.4, 'wpi_loc': '23back'}
-    inputs['radiance']['location'] = {'latitude': 37.7, 'longitude': 122.2, 'view_orient': 0,
-                                      'timezone': 120, 'orient': 0, 'elevation': 100}
-    inputs['df_input'] = df.to_dict()
-    inputs['wf_all'] = df[['DNI','DHI']].to_dict()
-    inputs['facade_initial'] = [3, 3, 3]
-    inputs['temps_initial'] = [22, 22, 22]
-    inputs['parameter'] = default_parameter()
-    #inputs['parameter']['wrapper']['resample_variable_ts'] = False
-    inputs['parameter']['wrapper']['precompute_radiance'] = True
-    filestruct, rad_config = get_config('ec', str(inputs['radiance']['wwr']), root=os.path.join(root, 'resources', 'radiance'))
-    inputs['paths'] = {'rad_config': rad_config}
-    inputs['paths']['rad_bsdf'] = filestruct['resources']
-    inputs['paths']['rad_mtx'] = filestruct['matrices']
+    parameter = default_parameter(precompute_radiance=False)
+    inputs = make_inputs(parameter, wf)
     
     # Query controller
     ctrl.do_step(inputs=inputs) # Initialize
     print('Log-message:\n', ctrl.do_step(inputs=inputs))
     print('Duration:\n', ctrl.get_output(keys=['rad_duration','varts_duration','optall_duration','glare_duration',
-                                                       'opt_duration','outputs_duration','duration']))
+                                               'opt_duration','outputs_duration','duration']))
     print('Optimization:\n', ctrl.get_output(keys=['opt_objective','opt_duration','opt_termination','duration']))
     df = pd.DataFrame(ctrl.get_output(keys=['df_output'])['df_output'])
     df.index = pd.to_datetime(df.index, unit='ms')
@@ -358,3 +396,6 @@ if __name__ == '__main__':
         plot_standard1(pd.concat([wf, df], axis=1).ffill())
     except:
         pass
+    
+# TODO
+# Regenerate matrices based on config file

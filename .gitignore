@@ -3,6 +3,7 @@
 *.pyc
 */build/*
 *.egg*
+*build/*
 
 # JSON files #
 ##############

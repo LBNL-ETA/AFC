@@ -60,7 +60,7 @@ def checkout(cmd):
 
 class Forecast(object):
     def __init__(self, cfg_path, regenerate=None, facade_type='ec', wpi_plot=False, wpi_loc='occupant',
-                 location=None, filestruct=None, _test_difference=False):
+                 location=None, filestruct=None, _test_difference=False, dimensions=None):
         self.root = os.path.dirname(os.path.abspath(__file__))
         self.parse_config(cfg_path)
         if regenerate:
@@ -75,6 +75,13 @@ class Forecast(object):
             self.timezone = location['timezone']
             self.elevation = location['elevation']
             self.orient = location['orient']
+        if dimensions:
+            self.dims['width'] = dimensions['width']
+            self.dims['depth'] = dimensions['depth']
+            self.dims['height'] = dimensions['height']
+            self.dims['window1'] = dimensions['window1']
+            self.dims['window2'] = dimensions['window2']
+            self.dims['window3'] = dimensions['window3']
         self.facade_type = facade_type
         self.wpi_plot = wpi_plot
         self.wpi_loc = wpi_loc
