@@ -53,7 +53,7 @@ def test1():
 
     # check
     res = ctrl.get_output(keys=['opt_objective','opt_duration','opt_termination','duration'])
-    assert int(round(res['opt_objective'], 1)*1e1)/1e1 == 7.1
-    assert res['opt_duration'] < 10
+    assert int(res['opt_objective']*1e1)/1e1 == 29.2
+    assert res['opt_duration'] < 5
     assert res['opt_termination'] == 'optimal'
     assert res['duration'] < 60*2
