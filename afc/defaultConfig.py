@@ -93,7 +93,7 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
     return parameter
 
 def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.5,
-                    system_heating_eff=0.95, zone_area=15, zone_type='71t'):
+                    system_heating_eff=0.95, zone_area=15, zone_type='single_office'):
     parameter['zone'] = {}
     parameter['zone']['fstate_initial'] = parameter['facade']['fstate_initial'] # Initiali state of facade
     
@@ -105,7 +105,7 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     parameter['zone']['cool_max'] = [200*zone_area, 200*zone_area, 200*zone_area] # 200 W_th/m2
     
     # thermal model
-    if zone_type == '71t':
+    if zone_type == 'single_office':
         parameter['zone']['param'] = {'type':'R4C2',
                                       'Row1': 0.0037992496008808323,
                                       'Rw1w2': 0.10706442491986229,
@@ -138,7 +138,7 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     return parameter
 
 def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4, temp_room_max=24, temp_room_min=20,
-                        plug_load=10, occupant_load=15, equipment=10):
+                        plug_load=10, occupant_load=15, equipment=10, zone_type='single_office'):
     
     parameter['occupant'] = {}
     
@@ -150,9 +150,12 @@ def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4, te
     parameter['occupant']['temp_room_min'] = temp_room_min
     
     # loads
-    parameter['occupant']['plug_load'] = plug_load # W
-    parameter['occupant']['occupant_load'] = occupant_load # W
-    parameter['occupant']['equipment'] = equipment # W
+    if zone_type == 'single_office':
+        parameter['occupant']['plug_load'] = 150 # W
+        parameter['occupant']['occupant_load'] = 100 # W
+        parameter['occupant']['equipment'] = 150 # W
+    else:
+        raise ValueError(f'The zone type "{zone_type}" is not available.')
     
     return parameter
     
@@ -161,7 +164,7 @@ def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4, te
 def default_parameter(tariff_name='e19-2020', hvac_control=True, facade_type='ec-71t', room_height=11,
                       room_width=10, room_depth=15, window_count=2, window_height=8.0, window_sill=0.5, window_width=4.5,
                       lighting_efficiency=0.24, system_cooling_eff=1/3.5, system_heating_eff=0.95, zone_area=15,
-                      zone_type='71t', weight_actuation=0.01, weight_glare=0, precompute_radiance=True,
+                      zone_type='single_office', weight_actuation=0.01, weight_glare=0, precompute_radiance=True,
                       location_latitude=37.85, location_longitude=-122.24, location_orientation=0, view_orient=0,
                       timezone=120, elevation=100):
 
@@ -202,8 +205,8 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True, facade_type='ec
                                     window1 = '.38 .22 2.29 .85',
                                     window2 = '.38 1.07 2.29 .85',
                                     window3 = '.38 1.98 2.29 .51')
-    print('FIXME: Default window parameters for 71T.')
     '''
+    Default window parameters for 71T.
     Viewing from outside, facing the south wall, the lower left corner of the wall is (0, 0, 0)
     window1 = .38 .22 2.29 .85 is 0.38m from the left edge, 0.22 meter from the ground, 2.29 in width, and 0.85 in height.
     Similarly, "view1 = 1.525 1 1.22 0 -1 0" is at 1.525 meter from the west wall(xposition), 1 meter from the south wall(y position), 1.22m height(z position), facing in 0 -1 0 direction(south), 
@@ -216,10 +219,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True, facade_type='ec
                                     glare_max=0.4,
                                     temp_room_max=24,
                                     temp_room_min=20,
-                                    plug_load=10,
-                                    occupant_load=15,
-                                    equipment=10)
-    print('FIXME: Default load schedule.')
+                                    zone_type = zone_type)
     
     # Enable HVAC control
     parameter['system']['hvac_control'] = hvac_control

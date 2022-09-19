@@ -17,4 +17,5 @@
 # Other #
 #########
 */logs/*
-
+*/log/*
+error_*

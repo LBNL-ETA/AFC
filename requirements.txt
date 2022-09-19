@@ -1,6 +1,8 @@
 pandas
 numpy
 pvlib
+netCDF4
+siphon
 fmlc
 frads @ git+https://github.com/LBNL-ETA/frads@old
 doper @ git+https://github.com/LBNL-ETA/DOPER
