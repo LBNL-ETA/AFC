@@ -275,13 +275,15 @@ def control_model(inputs, parameter):
                                 doc='thermal plugloads in room')
     model.zone_occload = Param(model.ts, initialize=pandas_to_dict(inputs['occupant_load']), \
                                doc='thermal occupant load in room')
+    model.occupancy_light = Param(model.ts, initialize=pandas_to_dict(inputs['occupancy_light']), \
+                                  doc='occupancy light in room')  
             
     def zone_p(model, ts):
         return model.p[ts] == model.p_lights[ts] + model.p_heating[ts] + model.p_cooling[ts] + model.p_equipment[ts]
     model.constraint_zone_p = Constraint(model.ts, rule=zone_p, doc='electric power of zone')     
     
     def zone_p_lights(model, ts):
-        return model.p_lights[ts] == model.zone_wpi_ext[ts] * parameter['zone']['lighting_efficiency']
+        return model.p_lights[ts] == model.zone_wpi_ext[ts] * parameter['zone']['lighting_efficiency'] * model.occupancy_light[ts]
     model.constraint_zone_p_lights = Constraint(model.ts, rule=zone_p_lights, doc='electric power of lights')   
     
     def zone_p_heat(model, ts):

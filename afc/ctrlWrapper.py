@@ -286,6 +286,7 @@ def make_inputs(parameter, df):
     df.loc[:, 'plug_load'] = parameter['occupant']['plug_load'] # W
     df.loc[:, 'occupant_load'] = parameter['occupant']['occupant_load'] # W
     df.loc[:, 'equipment'] = parameter['occupant']['equipment'] # W
+    df.loc[:, 'occupancy_light'] = parameter['occupant']['occupancy_light'] # 0-unoccupied, 1-occupied
     
     # Occupant constraints
     df.loc[:, 'wpi_min'] = parameter['occupant']['wpi_min']
@@ -346,39 +347,6 @@ if __name__ == '__main__':
     
     # Get all variables
     print('All Input variables:', ctrl.get_model_variables())
-       
-#     # Provide some inputs
-#     df['wpi_min'] = 500
-#     df['glare_max'] = 0.4
-#     df['generation_pv'] = 0
-#     df['load_demand'] = 0
-#     df['temp_room_max'] = 24
-#     df['temp_room_min'] = 20
-#     df['temp_slab_max'] = 23
-#     df['temp_slab_min'] = 21
-#     df['temp_wall_max'] = 40
-#     df['temp_wall_min'] = 10
-#     df['plug_load'] = 10 # W
-#     df['occupant_load'] = 15 # W
-#     df['equipment'] = 10 # W
-    
-#     # Inputs object
-#     inputs = {}
-#     inputs['radiance'] = {'regenerate': False, 'wwr': 0.4, 'wpi_loc': '23back'}
-#     inputs['radiance']['location'] = {'latitude': 37.7, 'longitude': 122.2, 'view_orient': 0,
-#                                       'timezone': 120, 'orient': 0, 'elevation': 100}
-#     inputs['df_input'] = df.to_dict()
-#     #inputs['wf_all'] = df[['DNI','DHI']].to_dict()
-#     inputs['wf_all'] = None
-#     inputs['facade_initial'] = [3, 3, 3]
-#     inputs['temps_initial'] = [22, 22, 22]
-#     inputs['parameter'] = default_parameter()
-#     #inputs['parameter']['wrapper']['resample_variable_ts'] = False
-#     inputs['parameter']['wrapper']['precompute_radiance'] = False
-#     filestruct, rad_config = get_config('ec', str(inputs['radiance']['wwr']), root=os.path.join(root, 'resources', 'radiance'))
-#     inputs['paths'] = {'rad_config': rad_config}
-#     inputs['paths']['rad_bsdf'] = filestruct['resources']
-#     inputs['paths']['rad_mtx'] = filestruct['matrices']
 
     parameter = default_parameter(precompute_radiance=False)
     inputs = make_inputs(parameter, wf)

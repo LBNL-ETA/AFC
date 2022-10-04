@@ -154,6 +154,7 @@ def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4, te
         parameter['occupant']['plug_load'] = 150 # W
         parameter['occupant']['occupant_load'] = 100 # W
         parameter['occupant']['equipment'] = 150 # W
+        parameter['occupant']['occupancy_light'] = 1 # 0-unoccupied, 1-occupied
     else:
         raise ValueError(f'The zone type "{zone_type}" is not available.')
     
