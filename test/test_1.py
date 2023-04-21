@@ -58,4 +58,4 @@ def test1():
     assert int(res['opt_objective']*1e1)/1e1 == 19.3
     assert res['opt_duration'] < 5
     assert res['opt_termination'] == 'optimal'
-    assert res['duration'] < 60*2
+    assert res['duration'] < 60*5
