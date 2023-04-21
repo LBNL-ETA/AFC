@@ -112,13 +112,11 @@ class Controller(eFMU):
                                                   solver_dir=self.input['parameter']['wrapper']['solver_dir'])
                 else:
                     solver_path = self.get_solver(self.input['parameter']['wrapper']['solver_name'])
-                    self.input['parameter']['wrapper']['solver_name'] = 'cbc'
                 pyomo_logger = logging.WARNING if self.input['parameter']['wrapper']['printing'] else \
                     logging.ERROR
                 self.tariff = self.get_tariff(self.input['parameter']['wrapper']['tariff_name'])
                 self.controller = self.DOPER(model=control_model,
                                              parameter=self.input['parameter'],
-                                             solver_name='',
                                              solver_path=solver_path,
                                              pyomo_logger=pyomo_logger,
                                              output_list=self.input['parameter']['wrapper']['output_list'])

@@ -14,11 +14,13 @@ import datetime as dtm
 root = os.path.dirname(os.path.abspath(__file__))
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from afc.ctrlWrapper import Controller, make_inputs
-from afc.utility.weather import read_tmy3
-from afc.radiance.configs import get_config
-from afc.defaultConfig import default_parameter
-from afc.utility.plotting import plot_standard1
+with warnings.catch_warnings():
+    warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+    from afc.ctrlWrapper import Controller, make_inputs
+    from afc.utility.weather import read_tmy3
+    from afc.radiance.configs import get_config
+    from afc.defaultConfig import default_parameter
+    from afc.utility.plotting import plot_standard1
 
 def test1():
     """
@@ -53,7 +55,7 @@ def test1():
 
     # check
     res = ctrl.get_output(keys=['opt_objective','opt_duration','opt_termination','duration'])
-    assert int(res['opt_objective']*1e1)/1e1 == 29.2
+    assert int(res['opt_objective']*1e1)/1e1 == 19.3
     assert res['opt_duration'] < 5
     assert res['opt_termination'] == 'optimal'
     assert res['duration'] < 60*2
