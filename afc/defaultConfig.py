@@ -106,13 +106,20 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     
     # thermal model
     if zone_type == 'single_office':
-        parameter['zone']['param'] = {'type':'R4C2',
-                                      'Row1': 0.0037992496008808323,
-                                      'Rw1w2': 0.10706442491986229,
-                                      'Rw2i': 3.3602377759986217e-07,
-                                      'Ci': 211414.5114368095,
-                                      'Ris': 0.012804832879362456,
-                                      'Cs': 3268802.970556823}
+#         parameter['zone']['param'] = {'type':'R4C2',
+#                                       'Row1': 0.0037992496008808323,
+#                                       'Rw1w2': 0.10706442491986229,
+#                                       'Rw2i': 3.3602377759986217e-07,
+#                                       'Ci': 211414.5114368095,
+#                                       'Ris': 0.012804832879362456,
+#                                       'Cs': 3268802.970556823}
+        parameter['zone']['param'] = {'type': 'R4C2',
+                                      'Ci': 492790.131488945,
+                                      'Cs': 3765860.3115474223,
+                                      'Ris': 0.023649372856050448,
+                                      'Row1': 0.0030454206460150783,
+                                      'Rw1w2': 0.14425660371050014,
+                                      'Rw2i': 0.0002577364781085182} # updated on 2023/02/06 with e19 results summer
     else:
         raise ValueError(f'The zone type "{zone_type}" is not available.')
     
@@ -239,6 +246,8 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True, facade_type='ec
     parameter['solver_options']['loglevel'] = int(0) # Log level of solver
     #parameter['solver_options']['dualT'] = 1e-7
     #parameter['solver_options']['dualB'] = 1e-7
+    parameter['site']['import_max'] = 1e9 # Disable import limit
+    parameter['site']['export_max'] = 1e9 # Disable export limit
     
     # Defaults for wrapper
     parameter['wrapper'] = {}
@@ -250,6 +259,8 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True, facade_type='ec
     parameter['wrapper']['resample_variable_ts'] = True # Use variable timestep in model
     parameter['wrapper']['reduced_start'] = 1*60 # Time offset when variable timestep starts, in minutes
     parameter['wrapper']['reduced_ts'] = 60 # Resampled timestep for reduced timestep, in minutes
+    parameter['wrapper']['cols_fill'] = ['temp_room_max', 'temp_room_min'] # columns to apply fill method (default is hvac temp cols)
+    parameter['wrapper']['limit_slope'] = 1 # C per 5 minute timestep
     parameter['wrapper']['precompute_radiance'] = precompute_radiance # Precompute radiance for full period
     parameter['wrapper']['solver_name'] = 'cbc'
     parameter['wrapper']['solver_dir'] = None

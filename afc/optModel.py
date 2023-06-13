@@ -38,7 +38,7 @@ def control_model(inputs, parameter):
     
     inputs = inputs.copy(deep=True)
     if type(inputs.index[0]) == type(pd.to_datetime(0)):
-        inputs.index = inputs.index.astype(int)/1000000000 # Convert datetime to UNIX
+        inputs.index = inputs.index.astype(int)/1e9 # Convert datetime to UNIX
     #timestep = model.timestep
     #timestep_scale = model.timestep_scale
         
@@ -276,7 +276,7 @@ def control_model(inputs, parameter):
     model.zone_occload = Param(model.ts, initialize=pandas_to_dict(inputs['occupant_load']), \
                                doc='thermal occupant load in room')
     model.occupancy_light = Param(model.ts, initialize=pandas_to_dict(inputs['occupancy_light']), \
-                                  doc='occupancy light in room')  
+                                  doc='occupancy light in room')
             
     def zone_p(model, ts):
         return model.p[ts] == model.p_lights[ts] + model.p_heating[ts] + model.p_cooling[ts] + model.p_equipment[ts]
@@ -298,10 +298,11 @@ def control_model(inputs, parameter):
     
     # Integration in model (at node 0 only)
     def zone_total_load(model, ts, node):
-        if node == model.nodes.at(parameter['zone']['zone_id']):
-            return model.building_load_dynamic[ts, node] == (model.p[ts]) / 1e3
-        else:
-            return model.building_load_dynamic[ts, node] == 0
+        return model.building_load_dynamic[ts, node] == model.p[ts] / 1e3 # W -> kW
+#         if node == model.nodes.at(parameter['zone']['zone_id']):
+#             return model.building_load_dynamic[ts, node] == (model.p[ts]) / 1e3
+#         else:
+#             return model.building_load_dynamic[ts, node] == 0
     model.constraint_zone_total_load = Constraint(model.ts, model.nodes, rule=zone_total_load, doc='total electric power to link models')
     
     def zone_total_load_end(model, ts, node):

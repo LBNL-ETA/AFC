@@ -215,19 +215,45 @@ class Controller(eFMU):
             # Variable timestep            
             st1 = time.time()
             if self.input['parameter']['wrapper']['resample_variable_ts']:
+                
+                # check columns
+                cols = self.input['parameter']['wrapper']['cols_fill']
+                if not 'temp_room_max' in cols[0].lower():
+                    print('ERROR: "temp_room_max" is not in first column of "cols_fill".')
+
+                # ensure ramp when occupancy starts
+                for ix in data.index[data[cols[0]].diff()<0]:
+                    ix_st = max(data.index[0]+pd.DateOffset(minutes=5), ix-pd.DateOffset(minutes=55))
+                    data.loc[ix_st:ix-pd.DateOffset(minutes=5), cols] = np.nan
+                data = data.resample(f'{(data.index[1]-data.index[0]).total_seconds()}S').interpolate()
+
+                # ensure resampling when occupancy ends
+                for ix in data.index[data[cols[0]].diff()>0]:
+                    data.loc[ix, cols] = data.loc[data.index[max(0, data.index.get_loc(ix)-1)], cols].values
+                    
+                # limit starting ramp
+                t_init = self.input['temps_initial'][0]
+                data[cols[0]] = np.min([[t_init+(i+1)*self.input['parameter']['wrapper']['limit_slope'] \
+                                         for i in range(len(data))], data[cols[0]]], axis=0)
+                data[cols[1]] = np.max([[t_init-(i+1)*self.input['parameter']['wrapper']['limit_slope'] \
+                                         for i in range(len(data))], data[cols[1]]], axis=0)
+
+                # resample
                 data = self.resample_variable_ts(data, \
                     reduced_start=int(self.input['parameter']['wrapper']['reduced_start']),
-                    reduced_ts=int(self.input['parameter']['wrapper']['reduced_ts']))
+                    reduced_ts=int(self.input['parameter']['wrapper']['reduced_ts']),
+                    cols_fill=self.input['parameter']['wrapper']['cols_fill'])
             self.output['varts_duration'] = time.time() - st1
 
             # Compute and update tariff
             data, _ = self.compute_periods(data, self.tariff, self.input['parameter'])
 
             # Check for nan
-            if len(pd.isnull(data).to_numpy().any(1).nonzero()[0]) > 0:
+            if pd.isnull(data).any(1).any():
                 print(data)
                 data.to_csv('error_controller_inputs.csv')
-                raise ValueError('NAN values in MPC input. Index:', pd.isnull(data).to_numpy().any(1).nonzero()[0])
+                raise ValueError('NAN values in MPC input. Index:',
+                                 data.index[pd.isnull(data).any(1).to_numpy().nonzero()[0]])
                 
             # Run optimization
             st1 = time.time()
@@ -272,6 +298,7 @@ class Controller(eFMU):
 
             self.init = False
             return self.standard_report(self.res)
+        
         except Exception as e:
             print('***ERROR***')
             print(traceback.print_exc())
