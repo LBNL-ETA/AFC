@@ -249,11 +249,11 @@ class Controller(eFMU):
             data, _ = self.compute_periods(data, self.tariff, self.input['parameter'])
 
             # Check for nan
-            if pd.isnull(data).any(1).any():
+            if pd.isnull(data).any().any():
                 print(data)
                 data.to_csv('error_controller_inputs.csv')
                 raise ValueError('NAN values in MPC input. Index:',
-                                 data.index[pd.isnull(data).any(1).to_numpy().nonzero()[0]])
+                                 data.index[pd.isnull(data).any().to_numpy().nonzero()[0]])
                 
             # Run optimization
             st1 = time.time()
