@@ -237,7 +237,7 @@ class Forecast():
                     receiver=wndw_rcvr,
                     env=env,
                     opt=self.vmx_opt)
-                with open(ovmx, 'wb', encoding='utf8') as wtr:
+                with open(ovmx, 'wb') as wtr:
                     wtr.write(vmx_res)
                 for idx in range(5): # five interior surfaces
                     _name = roomsrf[idx]['identifier']
@@ -248,14 +248,14 @@ class Forecast():
                         receiver=wndw_rcvr,
                         env=self.mlib,
                         opt=self.vsmx_opt,)
-                    with open(_out, 'wb', encoding='utf8') as wtr:
+                    with open(_out, 'wb') as wtr:
                         wtr.write(_svmx_res)
                 dmx_res = radmtx.rfluxmtx(
                     sender=radmtx.Sender.as_surface(prim_list=[wndw], basis='kf'),
                     receiver=radmtx.Receiver.as_sky(basis='r4'),
                     env=env,
                     opt=self.dmx_opt)
-                with open(odmx, 'wb', encoding='utf8') as wtr:
+                with open(odmx, 'wb') as wtr:
                     wtr.write(dmx_res)
 
     def load_mtx(self):
@@ -513,10 +513,10 @@ class Forecast():
         vis_cmd = genvis.split() + [tmpwea]
         sol_cmd = gensol.split() + [tmpwea]
         vissky_result = sp.run(vis_cmd, stderr=sp.PIPE, stdout=sp.PIPE, check=False)
-        with open(tmpvis, 'wb', encoding='utf8') as wtr:
+        with open(tmpvis, 'wb') as wtr:
             wtr.write(vissky_result.stdout)
         solsky_result = sp.run(sol_cmd, stderr=sp.PIPE, stdout=sp.PIPE, check=False)
-        with open(tmpsol, 'wb', encoding='utf8') as wtr:
+        with open(tmpsol, 'wb') as wtr:
             wtr.write(solsky_result.stdout)
         #sp.run('{} | genskyvec -m 4 > {}'.format(vissky, tmpvis), shell=True)
         #sp.run('{} | genskyvec -m 4 > {}'.format(solsky, tmpsol), shell=True)
