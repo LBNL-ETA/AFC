@@ -261,19 +261,19 @@ class Forecast():
     def load_mtx(self):
         """Function to load mtx."""
 
-        self._vmxs = [mtx_parser(i) for i in self.vmxs.items()]
-        self._dmxs = [mtx_parser(i) for i in self.dmxs.items()]
+        self._vmxs = [mtx_parser(i) for i in self.vmxs.values()]
+        self._dmxs = [mtx_parser(i) for i in self.dmxs.values()]
         self._tvis = [mtx_parser(i) for i in self.btdfs_vis]
         self._tsol = [mtx_parser(i) for i in self.btdfs_tsol]
         self._ftsol = [mtx_parser(i) for i in self.btdfs_ftsol]
         self._abs1 = [mtx_parser(i) for i in self.abs1]
         self._abs2 = [mtx_parser(i) for i in self.abs2]
         self._shg = [mtx_parser(i) for i in self.btdfs_shgc]
-        self._clngmxs = [mtx_parser(i) for i in self.clngmxs.items()]
-        self._flrmxs = [mtx_parser(i) for i in self.flrmxs.items()]
-        self._wwmxs = [mtx_parser(i) for i in self.wwmxs.items()]
-        self._ewmxs = [mtx_parser(i) for i in self.ewmxs.items()]
-        self._nwmxs = [mtx_parser(i) for i in self.nwmxs.items()]
+        self._clngmxs = [mtx_parser(i) for i in self.clngmxs.values()]
+        self._flrmxs = [mtx_parser(i) for i in self.flrmxs.values()]
+        self._wwmxs = [mtx_parser(i) for i in self.wwmxs.values()]
+        self._ewmxs = [mtx_parser(i) for i in self.ewmxs.values()]
+        self._nwmxs = [mtx_parser(i) for i in self.nwmxs.values()]
 
     def wpi_map(self, data, center_w, center_d, fov):
         """Function to make wpi map."""
