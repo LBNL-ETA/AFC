@@ -21,4 +21,5 @@ jobs:
         pip install .
     - name: Analyzing the code with pylint
       run: |
-        pylint --fail-under=8 $(find .. -name "*.py" -not -path "../build/*") --disable=C,R
+        cd afc
+        pylint $(find . -name "*.py" -not -path "*/glare/*" -not -path "*/interface/*" -not -path "*/interface_old/*")

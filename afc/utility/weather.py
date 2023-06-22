@@ -1,11 +1,23 @@
-import warnings
-warnings.filterwarnings('ignore', message='The forecast module algorithms' + \
-    ' and features are highly experimental. ')
+# Advanced Fenestration Controller (AFC) Copyright (c) 2023, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy). All rights reserved.
+
+""""Advanced Fenestration Controller
+Weather handling module.
+"""
+
+# pylint: disable=bare-except, invalid-name
 
 import os
-import pvlib
+import warnings
 import datetime as dt
 import pandas as pd
+import pvlib
+from pvlib.forecast import HRRR
+
+warnings.filterwarnings('ignore', message='The forecast module algorithms' + \
+    ' and features are highly experimental. ')
 
 try:
     root = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +26,7 @@ except:
     root = os.getcwd()
 
 def read_tmy3(filename=None, coerce_year=dt.datetime.now().year):
+    """Reads TMY data file."""
     weather, info = pvlib.iotools.read_tmy3(filename=filename,
                                    coerce_year=coerce_year)
     weather.index = weather.index - pd.DateOffset(hours=1)
@@ -22,10 +35,11 @@ def read_tmy3(filename=None, coerce_year=dt.datetime.now().year):
     return weather, info
 
 def read_mos(filename, coerce_year=dt.datetime.now().year):
+    """Reads .mos data file."""
     skiprows = 0
     header = []
     metadata = []
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding='utf8') as f:
         line = f.readline()
         while line[0] == '#':
             if line.startswith('#LOCATION'):
@@ -63,18 +77,19 @@ def read_mos(filename, coerce_year=dt.datetime.now().year):
     column_map['Direct normal radiation in Wh/m2'] = 'weaHDirNor'
     column_map['Diffuse horizontal radiation in Wh/m2'] = 'weaHDifHor'
     weather = weather.rename(columns=column_map)
-    start_time = pd.to_datetime('01-01-{}'.format(coerce_year))
+    start_time = pd.to_datetime(f'01-01-{coerce_year}')
     weather.index = [start_time + \
         pd.DateOffset(seconds=t) for t in weather['time']]
     return weather, metadata
 
 def get_forecast(st=dt.datetime.now(), tz=-8,
-                 loc={'latitude':37.617, 'longitude':-122.4},
-                 model=None):
+                 loc=None, model=None):
+    """Gathers latest weather forecast from NOAA."""
+    if not loc:
+        loc = {'latitude':37.617, 'longitude':-122.4}
     if not model:
-        from pvlib.forecast import HRRR
         model = HRRR()
-    tz = "Etc/GMT+{}".format(int(tz*-1))
+    tz = f'Etc/GMT+{int(tz*-1)}'
     tz = None
     print('WARNING: "tz" fixed to None!')
     st = pd.Timestamp(st, tz=tz).replace(second=0,
@@ -88,20 +103,20 @@ def get_forecast(st=dt.datetime.now(), tz=-8,
 if __name__ == '__main__':
     import time
     root_repo = os.path.dirname(root)
-    
+
     print('\nReading TMY3 file...')
-    weather, info = read_tmy3(os.path.join(
-        root_repo, 'resources', 'weather', 
+    wea, loc0 = read_tmy3(os.path.join(
+        root_repo, 'resources', 'weather',
         'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv'))
-    st = weather.index[int(len(weather.index)/2)].date()
-    print(weather.loc[st:st+pd.DateOffset(hours=23), 
+    st0 = wea.index[int(len(wea.index)/2)].date()
+    print(wea.loc[st0:st0+pd.DateOffset(hours=23),
                       ['GHI','DHI','DNI']])
-    
+
     print('\nGetting weather forecast...')
-    forecast, model = get_forecast(tz=info['TZ'],
-        loc=info, model=None)
-    st = time.time()
-    forecast, model = get_forecast(tz=info['TZ'],
-        loc=info, model=model)
-    print('Duration for forecast: {}s'.format(round(time.time()-st,1)))
+    forecast, model0 = get_forecast(tz=loc0['TZ'],
+        loc=loc0, model=None)
+    st1 = time.time()
+    forecast, model0 = get_forecast(tz=loc0['TZ'],
+        loc=loc0, model=model0)
+    print(f'Duration for forecast: {round(time.time()-st1,1)}s')
     print(forecast[['ghi','dhi','dni']].round(0))
