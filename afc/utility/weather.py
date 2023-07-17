@@ -7,14 +7,13 @@
 Weather handling module.
 """
 
-# pylint: disable=bare-except, invalid-name
+# pylint: disable=bare-except, invalid-name, import-outside-toplevel
 
 import os
 import warnings
 import datetime as dt
 import pandas as pd
 import pvlib
-from pvlib.forecast import HRRR
 
 warnings.filterwarnings('ignore', message='The forecast module algorithms' + \
     ' and features are highly experimental. ')
@@ -88,6 +87,7 @@ def get_forecast(st=dt.datetime.now(), tz=-8,
     if not loc:
         loc = {'latitude':37.617, 'longitude':-122.4}
     if not model:
+        from pvlib.forecast import HRRR
         model = HRRR()
     tz = f'Etc/GMT+{int(tz*-1)}'
     tz = None
