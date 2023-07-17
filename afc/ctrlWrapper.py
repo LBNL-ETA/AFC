@@ -448,7 +448,7 @@ if __name__ == '__main__':
     print('Optimization:\n', ctrl.get_output(keys=['opt_objective', 'opt_duration',
                                                    'opt_termination', 'duration']))
     df = pd.DataFrame(ctrl.get_output(keys=['df_output'])['df_output'])
-    df.index = pd.to_datetime(df.index, unit='ms')
+    df.index = pd.to_datetime(pd.to_numeric(df.index), unit='ms')
 
     try:
         plot_standard1(pd.concat([wf, df], axis=1).ffill())
