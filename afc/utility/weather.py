@@ -87,8 +87,7 @@ def get_forecast(st=dt.datetime.now(), tz=-8,
     if not loc:
         loc = {'latitude':37.617, 'longitude':-122.4}
     if not model:
-        from pvlib.forecast import HRRR
-        model = HRRR()
+        print('ERROR: No model supplied.')
     tz = f'Etc/GMT+{int(tz*-1)}'
     tz = None
     print('WARNING: "tz" fixed to None!')
