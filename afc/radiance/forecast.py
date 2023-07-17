@@ -146,7 +146,7 @@ class Forecast():
         self.vmx_opt = simctrl['vmx']
         self.vsmx_opt = simctrl['vsmx']
         self.dmx_opt = simctrl['dmx']
-        self.remake_matrices = simctrl['re-make_matrices']
+        self.remake_matrices = simctrl['re-make_matrices'] == 'True'
         self.view = cfg['View']['view1']
         self.grid_height = float(cfg['Grid']['height'])
         self.grid_spacing = float(cfg['Grid']['spacing'])
