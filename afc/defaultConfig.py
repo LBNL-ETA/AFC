@@ -7,7 +7,7 @@
 Default configuration.
 """
 
-# pylint: disable=too-many-arguments, bare-except, invalid-name,, too-many-locals
+# pylint: disable=too-many-arguments, bare-except, too-many-locals
 
 import os
 import sys
@@ -93,6 +93,8 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
     # location
     parameter['radiance']['location'] = {}
     parameter['radiance']['location']['latitude'] = latitude
+    if longitude < 0:
+        print('WARNING: Longitude for Radiance must be positive for the western hemisphere.')
     parameter['radiance']['location']['longitude'] = longitude
     parameter['radiance']['location']['view_orient'] = view_orient
     parameter['radiance']['location']['timezone'] = timezone
@@ -235,6 +237,8 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                                 zone_type = zone_type)
 
     # setup Radiance
+    if longitude > 0:
+        print('WARNING: Longitude must be negative for the western hemisphere.')
     parameter = get_radiance_config(parameter,
                                     regenerate = False,
                                     wwr = wwr,
