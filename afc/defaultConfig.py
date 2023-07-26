@@ -237,7 +237,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                                 zone_type = zone_type)
 
     # setup Radiance
-    if longitude > 0:
+    if location_longitude > 0:
         print('WARNING: Longitude must be negative for the western hemisphere.')
     parameter = get_radiance_config(parameter,
                                     regenerate = False,
