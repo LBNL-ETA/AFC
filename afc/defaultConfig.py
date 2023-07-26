@@ -8,6 +8,7 @@ Default configuration.
 """
 
 # pylint: disable=too-many-arguments, bare-except, too-many-locals
+# pylint: disable=invalid-name
 
 import os
 import sys
