@@ -7,7 +7,7 @@
 Watttime module.
 """
 
-# pylint: disable=redefined-outer-name, invalid-name, too-many-arguments
+# pylint: disable=redefined-outer-name, invalid-name, too-many-arguments, duplicate-code
 
 import os
 import json
