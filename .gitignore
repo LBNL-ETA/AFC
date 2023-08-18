@@ -20,3 +20,5 @@
 */log/*
 error_*
 cbc_*
+*.zip
+*_error.html
