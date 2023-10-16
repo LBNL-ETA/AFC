@@ -16,11 +16,11 @@ The functionality of an *Integrated Controller* (i.e., Advanced Fenestration Con
 *Please note that the AFC package and especially the examples are still under development. Please open an issue for specific questions.*
 
 ## Getting Started
-The following link permits users to clone the source directory containing the [AFC](https://github.com/LBNL-ETA/AFC) package.
+The following link permits users to clone the source directory containing the [AFC](https://github.com/LBNL-ETA/AFC) package and then locally install with the `pip install .` command.
 
-The package depends on external modules which can be installed from pypi with ```pip install .```.
+Alternatively, AFC can be directly installed with `pip install git+https://github.com/LBNL-ETA/AFC`.
 
-In addition the [Radiance](https://www.radiance-online.org/download-install/radiance-source-code/latest-release) tool needs to be installed. Binaries can also be found [here](https://github.com/LBNL-ETA/Radiance/releases).
+In addition the [Radiance](https://www.radiance-online.org/download-install/radiance-source-code/latest-release) tool needs to be installed. Binaries can be found [here](https://github.com/LBNL-ETA/Radiance/releases).
 
 ## Example
 To test the installation and illustrate the functionality of AFC, the following command can be executed to run the [example_1.py](https://github.com/LBNL-ETA/AFC/blob/master/examples/example_1.py).
