@@ -13,7 +13,7 @@ import os
 
 root = os.path.dirname(os.path.abspath(__file__))
 
-def get_config(mode, wwr, abs_path=True, root=os.path.join(root, '..', '..',
+def get_config(mode, wwr, abs_path=True, root=os.path.join(root, '..',
                                                            'resources', 'radiance')):
     """Function to generate configuration."""
 

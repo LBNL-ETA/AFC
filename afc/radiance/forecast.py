@@ -585,30 +585,21 @@ class Forecast():
 
 if __name__ == "__main__":
 
+    import warnings
+    warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+
     from .configs import get_config
     root = os.path.dirname(os.path.abspath(__file__))
-
-    '''
-    config_path = os.path.join(root, '..', '..', 'resources', 'radiance','room0.6WWR_blinds.cfg')
-
-    if len(sys.argv) > 1:
-        config_path = sys.argv[1]
-
-    filestruct = {}
-    filestruct['resources'] = os.path.join(os.path.dirname(config_path), 'BSDF_blinds0.6')
-    filestruct['matrices'] = os.path.join(os.path.dirname(config_path), 'matrices', 'blinds0.6')
-    '''
-
+    
+    # configuration
     wwr = 0.6 # [0.4, 0.6]
     mode = 'dshade' # ['shade', 'blinds', 'ec']
     facade_type = 'shade' # ['shade', 'blinds', 'ec']
+    print('Running example for:', wwr, mode, facade_type)
     filestruct, config_path = get_config(mode, wwr)
     forecaster = Forecast(config_path, facade_type=facade_type, regenerate=False,
-                          filestruct=filestruct, wpi_plot=True, wpi_loc='23back')
-    '''
-    for i in range(24*12-2):
-        df = df.append(df)
-    '''
+                          filestruct=filestruct, wpi_plot=False, wpi_loc='23back')
+
     for i in range(3):
         #df = pd.DataFrame([[800, 80], [750, 100], [100, 10]],
         #                       index=pd.DatetimeIndex([
@@ -619,24 +610,21 @@ if __name__ == "__main__":
         df = pd.DataFrame(index=pd.date_range('2020-01-01 00:00',
                                               '2020-01-02 00:00',
                                               freq='5T'))
-        #df = pd.DataFrame(index=pd.date_range('2020-01-01 00:00',
-        #                                      '2020-01-01 00:05',
-        #                                      freq='5T'))
         np.random.seed(1)
         df['DNI'] = np.random.uniform(0, 1000, len(df))
         np.random.seed(1)
         df['DHI'] = np.random.uniform(0, 250, len(df))
 
         fake_df = pd.DataFrame([[185.5, 42], [165.3, 38.3]],
-                       index=pd.DatetimeIndex([pd.datetime(2017, 9, 1, 18, 15),
-                                               pd.datetime(2017, 9, 1, 18, 20)]),
+                       index=pd.DatetimeIndex([pd.to_datetime('2017-09-01 18:15'),
+                                               pd.to_datetime('2017-09-01 18:20')]),
                        columns=['DNI','DHI'])
 
         st = time.time()
         #res = forecaster.compute(df)
         res = forecaster.compute2(fake_df)
         print(time.time() - st)
-    #print('Forecast of 24h x 5min in {} s'.format(round(time.time() - st, 1)))
+    print('Forecast of 24h x 5min in {} s'.format(round(time.time() - st, 2)))
     #print(res.columns)
     #for k,v in forecaster.new_map.items():
     #    print(k, v)
