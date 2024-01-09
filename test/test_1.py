@@ -30,9 +30,9 @@ def test1():
     # read weather (forecast) data
     weather_path = os.path.join(os.path.dirname(root), 'dev', 'resources', 'weather', 
         'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv')
-    weather, info = read_tmy3(weather_path)
+    weather, info = read_tmy3(weather_path, coerce_year=2023)
     weather = weather.resample('5T').interpolate()
-    st = dtm.datetime(dtm.datetime.now().year, 7, 1)
+    st = dtm.datetime(2023, 7, 1)
     wf = weather.loc[st:st+pd.DateOffset(hours=24),]
     df = wf[['DryBulb','DNI','DHI','Wspd']].copy()
     df = df[df.index.date == df.index[0].date()]
