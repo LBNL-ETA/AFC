@@ -590,7 +590,7 @@ if __name__ == "__main__":
 
     from .configs import get_config
     root = os.path.dirname(os.path.abspath(__file__))
-    
+
     # configuration
     wwr = 0.6 # [0.4, 0.6]
     mode = 'dshade' # ['shade', 'blinds', 'ec']
@@ -624,7 +624,7 @@ if __name__ == "__main__":
         #res = forecaster.compute(df)
         res = forecaster.compute2(fake_df)
         print(time.time() - st)
-    print('Forecast of 24h x 5min in {} s'.format(round(time.time() - st, 2)))
+    print(f'Forecast of 24h x 5min in {round(time.time() - st, 2)} s')
     #print(res.columns)
     #for k,v in forecaster.new_map.items():
     #    print(k, v)
