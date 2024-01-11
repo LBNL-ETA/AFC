@@ -74,7 +74,7 @@ class Forecast():
     """Radiance forecaster class for the AFC."""
 
     def __init__(self, cfg_path, regenerate=None, facade_type='ec', wpi_plot=False,
-                 wpi_loc='occupant', location=None, filestruct=None,
+                 wpi_loc='23back', location=None, filestruct=None,
                  _test_difference=False, dimensions=None):
         self.root = os.path.dirname(os.path.abspath(__file__))
         self.parse_config(cfg_path)
@@ -630,3 +630,4 @@ if __name__ == "__main__":
     #    print(k, v)
     print(res)
     print(res['wpi_0_6'])
+    res.to_csv('radiance-forecast_original.csv')
