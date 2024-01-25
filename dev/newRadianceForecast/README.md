@@ -6,7 +6,7 @@ The radiance and frads backend was updated to use latest frads within the AFC co
 
 Results are verified by running the "Compare ALL Radiance.ipynb" Notebook before and after the update.
 
-Note that the previous results are permanently stored in 20240124T192443-old-compare.json and new results are stored in 20240125T202123-new-compare.json.
+Note that the previous results are permanently stored in 20240124T192443-old-compare.json and new results are stored in 20240125T233411-new-compare.json.
 
 ## Findings
 
