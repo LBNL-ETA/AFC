@@ -24,13 +24,20 @@ except:
     print('WARNING: Using local directory as root.')
     root = os.getcwd()
 
-def read_tmy3(filename=None, coerce_year=dt.datetime.now().year):
+def read_tmy3(filename=None, coerce_year=dt.datetime.now().year, convert_numeric=True):
     """Reads TMY data file."""
     weather, info = pvlib.iotools.read_tmy3(filename=filename,
-                                   coerce_year=coerce_year)
+                                            coerce_year=coerce_year,
+                                            map_variables=True)
     weather.index = weather.index - pd.DateOffset(hours=1)
     weather.index = weather.index.tz_localize(None)
     weather.index.name = None
+
+    # make sure numeric outputs
+    if convert_numeric:
+        for c in weather.columns:
+            weather[c] = pd.to_numeric(weather[c], errors='coerce')
+
     return weather, info
 
 def read_mos(filename, coerce_year=dt.datetime.now().year):
@@ -105,11 +112,11 @@ if __name__ == '__main__':
 
     print('\nReading TMY3 file...')
     wea, loc0 = read_tmy3(os.path.join(
-        root_repo, 'resources', 'weather',
+        root_repo, '..', 'dev', 'resources', 'weather',
         'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv'))
     st0 = wea.index[int(len(wea.index)/2)].date()
     print(wea.loc[st0:st0+pd.DateOffset(hours=23),
-                      ['GHI','DHI','DNI']])
+                      ['ghi','dhi','dni']])
 
     print('\nGetting weather forecast...')
     forecast, model0 = get_forecast(tz=loc0['TZ'],

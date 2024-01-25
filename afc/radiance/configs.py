@@ -18,22 +18,10 @@ def get_config(mode, wwr, abs_path=True, root=os.path.join(root, '..',
     """Function to generate configuration."""
 
     filestruct = {}
-    if mode == 'shade':
-        config_path = os.path.join(root, f'room{wwr}WWR_shade.cfg')
-        filestruct['resources'] = os.path.join(root, 'BSDF_shade')
-        filestruct['matrices'] = os.path.join(root, 'matrices', mode, str(wwr))
-    elif mode == 'dshade':
-        mode = 'shade'
-        config_path = os.path.join(root, f'room{wwr}WWR_shade.cfg')
-        filestruct['resources'] = os.path.join(root, 'BSDF_dshade')
-        filestruct['matrices'] = os.path.join(root, 'matrices', mode, str(wwr))
-    elif mode == 'blinds':
-        config_path = os.path.join(root, f'room{wwr}WWR_blinds.cfg')
-        filestruct['resources'] = os.path.join(root, f'BSDF_blinds{wwr}')
-        filestruct['matrices'] = os.path.join(root, 'matrices', mode, str(wwr))
-    elif mode == 'ec':
-        config_path = os.path.join(root, f'room{wwr}WWR_ec.cfg')
-        filestruct['resources'] = os.path.join(root, 'BSDFs')
+    if mode in ['shade', 'dshade', 'blinds', 'ec']:
+        cfg_mode = mode.replace('dshade', 'shade')
+        config_path = os.path.join(root, f'room{wwr}WWR_{cfg_mode}.cfg')
+        filestruct['resources'] = os.path.join(root, 'bsdf', mode)
         filestruct['matrices'] = os.path.join(root, 'matrices', mode, str(wwr))
     else:
         print(f'ERROR: Mode {mode} not supported.')

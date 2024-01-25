@@ -4,5 +4,5 @@ pvlib
 netCDF4
 siphon
 fmlc
-frads @ git+https://github.com/LBNL-ETA/frads@old
+frads>=1.2.3
 doper @ git+https://github.com/LBNL-ETA/DOPER

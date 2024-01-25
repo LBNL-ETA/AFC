@@ -38,7 +38,7 @@ def example1():
     #weather = weather.resample('5T').interpolate()
     st = dtm.datetime(2023, 7, 1)
     wf = weather.loc[st:st+pd.DateOffset(hours=24),]
-    df = wf[['DryBulb','DNI','DHI','Wspd']].copy()
+    df = wf[['temp_air','dni','dhi','wind_speed']].copy()
     df = df[df.index.date == df.index[0].date()]
 
     # Initialize controller
@@ -60,11 +60,11 @@ def example1():
     #print('Optimization:')
     #pprint.pprint(ctrl.get_output(keys=['opt_objective','opt_duration','opt_termination','duration']))
     df = pd.DataFrame(ctrl.get_output(keys=['df_output'])['df_output'])
-    df.index = pd.to_datetime(df.index, unit='ms')
+    df.index = pd.to_datetime(pd.to_numeric(df.index), unit='ms')
     print('Facade actuation during the day (when DNI > 0).')
     print('Facade 0 = bottom zone, Facade 1 = middle zone, Facade 2 = top zone')
     print('State 0.0 = fully tinted, State 1.0 and 2.0 = intermediate tint, state 3.0 = clear (double low-e)\n')
-    print(df[['Facade State 0', 'Facade State 1', 'Facade State 2']][df['DNI'] > 0])
+    print(df[['Facade State 0', 'Facade State 1', 'Facade State 2']][df['dni'] > 0])
 
 
 if __name__ == '__main__':

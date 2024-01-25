@@ -63,7 +63,7 @@ def plot_standard1(data, title=None, plot=True, tight=True):
     if title:
         fig.suptitle(title, fontsize=16)
     axs = axs.ravel()
-    plot_plot_xy(axs[0],data[['GHI','DHI','DNI']],title='Weather',ylab='Solar Irradiance [W/m2]',
+    plot_plot_xy(axs[0],data[['ghi','dhi','dni']],title='Weather',ylab='Solar Irradiance [W/m2]',
                  labels=['Global Horizontal','Diffuse Horizontal','Direct Normal',])
     plot_plot_xy(axs[1],data[[c for c in data.columns if 'Facade State' in c]],
                  title='Facade State',ylab='State [1]',

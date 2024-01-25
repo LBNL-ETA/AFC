@@ -12,7 +12,7 @@
 # ipynb checkpoints #
 #####################
 *checkpoint.ipynb
-*/.ipynb_checkpoints/*
+.ipynb_checkpoints
 
 # Other #
 #########
@@ -23,3 +23,6 @@ cbc_*
 *.zip
 *_error.html
 all_rins.csv
+*.npz
+Octrees
+Temp

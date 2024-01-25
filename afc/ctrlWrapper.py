@@ -31,7 +31,7 @@ except:
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-map_weather = {'DNI':'weaHDirNor', 'DHI':'weaHDifHor'}
+map_weather = {'dni':'weaHDirNor', 'dhi':'weaHDifHor'}
 
 class Controller(eFMU):
     """Main controller wrapper class for the AFC."""
@@ -185,11 +185,11 @@ class Controller(eFMU):
                     temp = pd.DataFrame()
                     for d in sorted(np.unique(wf_all.index.date)):
                         if temp.empty:
-                            tt = wf_all[['DNI','DHI']][wf_all.index.date == d]
+                            tt = wf_all[['dni','dhi']][wf_all.index.date == d]
                             temp = self.forecaster.compute2(tt)
                         else:
                             temp = pd.concat([temp, self.forecaster.compute2( \
-                                wf_all[['DNI','DHI']][wf_all.index.date == d])])
+                                wf_all[['dni','dhi']][wf_all.index.date == d])])
                     self.forecaster = temp
 
                 # Glare handler
@@ -199,14 +199,14 @@ class Controller(eFMU):
                     self.glare_handler_class(config=self.input['radiance']['location'],
                                              view_config=view_config)
                 if self.input['parameter']['wrapper']['precompute_radiance']:
-                    wf = wf_all[['DNI','DHI']].copy(deep=True).rename(columns=map_weather)
+                    wf = wf_all[['dni','dhi']].copy(deep=True).rename(columns=map_weather)
                     for ix in wf.index:
                         wf.loc[ix, ['alt', 'azi_shift', 'inci', 'azi']] = \
                             self.glare_handler.get_solar(ix, wf.loc[ix:ix])
                         gmodes = self.glare_handler.glare_mode_many( \
                             *wf.loc[ix, ['alt', 'azi_shift', 'inci']].values)
                         for i, g in enumerate(gmodes):
-                            wf.loc[ix, f'zone{i}_gmode'] = g
+                            wf.loc[ix, f'zone{i}_gmode'] = int(g)
                     self.glare_handler = wf
 
             # Compute radiance
@@ -215,7 +215,7 @@ class Controller(eFMU):
             if self.input['parameter']['wrapper']['precompute_radiance']:
                 data = self.forecaster.loc[inputs.index]
             else:
-                data = self.forecaster.compute2(inputs[['DNI','DHI']])
+                data = self.forecaster.compute2(inputs[['dni','dhi']])
             # cutoff
             rad_cutoff = self.input['parameter']['facade']['rad_cutoff']
             for k in rad_cutoff.keys():
@@ -230,14 +230,14 @@ class Controller(eFMU):
             if self.input['parameter']['wrapper']['precompute_radiance']:
                 wf = self.glare_handler.loc[inputs.index]
             else:
-                wf = inputs[['DNI','DHI']].copy(deep=True).rename(columns=map_weather)
+                wf = inputs[['dni','dhi']].copy(deep=True).rename(columns=map_weather)
                 for ix in wf.index:
                     wf.loc[ix, ['alt', 'azi_shift', 'inci', 'azi']] = \
                         self.glare_handler.get_solar(ix, wf.loc[ix:ix])
                     gmodes = self.glare_handler.glare_mode_many( \
                         *wf.loc[ix, ['alt', 'azi_shift', 'inci']].values)
                     for i, g in enumerate(gmodes):
-                        wf.loc[ix, f'zone{i}_gmode'] = g
+                        wf.loc[ix, f'zone{i}_gmode'] = int(g)
 
             zones = self.input['parameter']['facade']['windows']
             states = self.input['parameter']['facade']['states']
@@ -254,13 +254,13 @@ class Controller(eFMU):
                         wf_key = f'zone{t-1 if flip_z else nz-1}_gmode'
                     gmodes.append(wf.loc[wf.index[0], wf_key])
                     data[f'ev_{nz}_{t}'] =  data[f'ev_{nz}_{t}'].mask( \
-                        (wf[wf_key] is True) & (data[f'wpi_{nz}_{t}']>0), 2e4)
+                        (wf[wf_key] > 0) & (data[f'wpi_{nz}_{t}']>0), 2e4)
             self.output['glare_duration'] = time.time() - st1
 
             # Compute other inputs
             data = pd.concat([data, inputs], axis=1)
-            data['oat'] = inputs['DryBulb']
-            data['wind_speed'] = inputs['Wspd']
+            data['oat'] = inputs['temp_air']
+            data['wind_speed'] = inputs['wind_speed']
             data['battery_0_avail'] = 0
             data['battery_0_demand'] = 0
             data['battery_reg'] = 0
@@ -349,7 +349,7 @@ class Controller(eFMU):
                     z in self.input['parameter']['facade']['windows']]].iloc[0].values
                 #uShade = df[['Tint Bottom [-]', 'Tint Middle [-]', 'Tint Top [-]']].iloc[0].values
                 self.output['uShade'] = [round(float(u),1) for u in uShade]
-                self.output['uTroom'] = float(df[['Temperature 0 [C]']].iloc[1].values)
+                self.output['uTroom'] = float(df['Temperature 0 [C]'].values[1])
             df = pd.concat([df, data], axis=1)
             df.index = (df.index.astype(np.int64) / 10 ** 6).astype(str)
             df = df.fillna(-1)
@@ -423,11 +423,11 @@ if __name__ == '__main__':
     # read weather (forecast) data
     weather_path = os.path.join(os.path.dirname(root), 'dev', 'resources', 'weather',
         'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv')
-    weather, info = read_tmy3(weather_path)
+    weather, info = read_tmy3(weather_path, coerce_year=2023)
     weather = weather.resample('5T').interpolate()
-    st = dtm.datetime(dtm.datetime.now().year, 7, 1)
+    st = dtm.datetime(2023, 7, 1)
     wf = weather.loc[st:st+pd.DateOffset(hours=24),]
-    wf = wf[['DryBulb','DNI','DHI','Wspd']+['GHI']].copy()
+    wf = wf[['temp_air','dni','dhi','wind_speed']+['ghi']].copy()
     wf = wf[wf.index.date == wf.index[0].date()]
 
     # Initialize controller
@@ -451,6 +451,9 @@ if __name__ == '__main__':
     df.index = pd.to_datetime(pd.to_numeric(df.index), unit='ms')
 
     try:
-        plot_standard1(pd.concat([wf, df], axis=1).ffill())
+        # Remove slab constraints for plotting
+        df['Temperature 1 Min [C]'] = None
+        df['Temperature 1 Max [C]'] = None
+        plot_standard1(pd.concat([wf, df], axis=1).ffill().iloc[:-1])
     except:
         pass
