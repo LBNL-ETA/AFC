@@ -34,7 +34,7 @@ def test1():
     weather = weather.resample('5T').interpolate()
     st = dtm.datetime(2023, 7, 1)
     wf = weather.loc[st:st+pd.DateOffset(hours=24),]
-    df = wf[['DryBulb','DNI','DHI','Wspd']].copy()
+    df = wf[['temp_air','dni','dhi','wind_speed']].copy()
     df = df[df.index.date == df.index[0].date()]
 
     # Initialize controller
