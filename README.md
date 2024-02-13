@@ -10,7 +10,10 @@
 This publicly available control package was developed to allow easy access to integrated dynamic facade and smart building control algorithms developed by Lawrence Berkeley National Laboratory's (LBNL) [Windows Group](https://windows.lbl.gov/). Dynamic facades can be any automated facade product such as motorized blinds, shades, or electrochromic windows. The control algorithms are based on the [Model Predictive Control](https://en.wikipedia.org/wiki/Model_predictive_control) technique and utilize LBNL’s Distributed Optimal Energy Resources ([DOPER](https://github.com/LBNL-ETA/DOPER)) and Framework for Multi-Layer Control ([FMLC](https://github.com/LBNL-ETA/FMLC)) developments to implement the algorithms.
 
 
-The functionality of an *Integrated Controller* (i.e., Advanced Fenestration Control) is illustrated in the following figure. Setpoints for light levels and occupant glare sensitivity are provided as inputs. At each five minute timestep the controller receives updated information from exterior and interior sensors and controls the elctric lights and dynamc facade (e.g., motorized blinds, electrochromic windows) accordingly.
+A general overview of integrated dynamic facade and smart building controls can be found in the [Smart Buildings Breakthrough Technology](https://windows.lbl.gov/news/smart-buildings-breakthrough) news article.
+
+The Advanced Fenestration Controller (AFC) is designed to minimize electricity cost and/or emissions in buildings through the control of dynamic facades (for example electrochromic windows, blinds, and shades), and lighting and HVAC systems. The AFC also considers a variety of control parameters such as visual and thermal comfort (glare, daylight, view, health, and wellness). It uses weather forecasts, and a set of measurements (room and floor temperature) to optimize control setpoints over a specified time horizon of typically 24 hours. The functionality illustrated below:
+
 
 ![illustrate_system.jpg](https://github.com/LBNL-ETA/AFC/blob/master/docs/illustrate_system.jpg)
 
