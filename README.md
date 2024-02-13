@@ -96,6 +96,83 @@ To create the final input object which combines the parameter and data inputs, a
 - `temp_wall_min`: Minimum temperature of the wall, in °C. Default value is 0.
 - `wpi_min`: Minimum work plane illuminance, in lux (populated from `parameter['occupant'][‘wpi_min’]`).
 
+In this example, relying on the code of the two previous sections, we would write the following code to generate the combined input object:
+
+```python
+# make input object from parameters and data inputsn
+from afc.ctrlWrapper import make_inputs
+inputs = make_inputs(parameter, wf)
+```
+
+### 2. Run Optimization to Determine Setpoints
+After setting up the inputs, we can now create an instance of the AFC controller. To run the controller and conduct the optimization, the previously created `inputs` are passed to the `do_step method` of the controller instance. The result is a log string with status messages.
+
+```python
+from afc import Controller    
+# initialize controller
+ctrl = Controller()
+# query controller
+log = ctrl.do_step(inputs=inputs)
+```
+
+### 3. Output of Setpoints
+The AFC controller provides a variety of outputs ranging from the desired control setpoints to more technical information on the optimization process. All outputs can be accessed using the `get_output` method as shown by the example below:
+
+```python
+# get all outputs
+ctrl.get_output()
+# get only facade setpoints
+ctrl.get_output(keys=['uShade'])
+```
+
+These full list of outputs is here:
+- `df_output`: Dataframe containing detailed time series data from the optimization (detailed below). Typically only used for debugging or visualizations.
+- `duration`: Total duration of the whole controller iteration, in sec.
+- `glaremode`: Indication if any of the window zones is in glare mode, as a list of booleans.
+- `glare_duration`: Duration to calculate window glare modes, in sec.
+- `optall_duration`: Total duration of the optimization process, in sec.
+- `opt_duration`: Duration to solve the optimization problem, in sec.
+- `opt_objective`: Optimal value of the objective function.
+- `opt_termination`: Status of optimization indicating whether the solver has reached an optimal solution, as string.
+- `outputs_duration`: Duration to generate the outputs, in sec.
+- `rad_duration`: Duration to calculate the radiance inputs, in sec.
+- `uShade`: Control setpoint for dynamic facade, as list of setpoints for each zone.
+- `uTroom`: Control setpoint for HVAC thermostat, in °C.
+- `varts_duration`: Duration to resample for variable-timestep inputs, in sec.
+
+The `df_output` is a special entry as it contains time series data for all the inputs and outputs of the optimization process. It is not necessary for a general user to understand these, but might be important for developers or debugging. The `df_output` can be formatted into a pandas dataframe and subsequently easily plotted and analyzed:
+
+```python
+# convert df_outputs to pandas
+df = pd.DataFrame(ctrl.get_output(keys=['df_output'])['df_output'])
+df.index = pd.to_datetime(df.index, unit='ms')
+# remove slab constraints for plotting
+df['Temperature 1 Min [C]'] = None
+df['Temperature 1 Max [C]'] = None
+# make exmaple plot of results
+from afc.utility.plotting import plot_standard1
+plot_standard1(pd.concat([wf, df], axis=1).ffill().iloc[:-1])
+```
+
+The detailed time series output data stored in `df_output` is provided as indexed dictionary:
+- `artificial Illuminance`: Illuminance provided by artificial lighting, in lux.
+- `export Power`: Electricity generated local generation which is fed back into the grid, in kW.
+- `hour`: Hour of the day.
+- `import Power`: Total amount of electricity consumed by the whole building site, in kW.
+- `load Power`: Amount of electricity consumed by the building, in kW.
+- `power Lights`: Amount of electricity consumed by artificial lighting, in kW​​.
+- `PV Power`: Amount of electricity produced by local photovoltaic generation, in kW.
+- `tariff_energy_export_map`: Tariff map to map time period to export power rates.I 
+- `tariff_energy_map`: Tariff map to map time period to energy rates.
+- `tariff Energy Period`: Tariff map to map time period to energy rates.
+- `tariff_power_map`: Tariff map to map time period to peak power rates.
+- `tariff Power Period`: Tariff map to map time period to peak power rates.
+- `tariff_regdn`: Time dependent tariff for frequency regulation. Not used in AFC. 
+- `tariff_regup`: Time dependent tariff for frequency regulation. Not used in AFC.
+- `temperature`: Temperature inside the building, in °C.
+- `window Illuminance`: Illuminance provided by natural daylight, in lux.
+
+  
 ## Example
 To test the installation and illustrate the functionality of AFC, the following command can be executed to run the [example_1.py](https://github.com/LBNL-ETA/AFC/blob/master/examples/example_1.py).
 
@@ -160,3 +237,9 @@ year={2020},
 publisher={Elsevier}
 }
 ```
+
+## Further reading
+For interested users additional information on the development process of AFC and its applications can be found in the following publications:
+
+- Christoph Gehbauer, Eleanor S. Lee, Taoning Wang (2023), [An evaluation of the demand response potential of integrated dynamic window and HVAC systems](https://www.sciencedirect.com/science/article/pii/S0378778823007119?via%3Dihub), *Energy & Buildings 298*  (2023) 113481
+- Christoph Gehbauer, David H. Blum, Taoning Wang, Eleanor S. Lee (2020), [An assessment of the load modifying potential of model predictive controlled dynamic facades within the California context](https://www.sciencedirect.com/science/article/pii/S0378778819317098?via%3Dihub), *Energy & Buildings 210* (2020) 109762
