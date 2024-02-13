@@ -17,7 +17,7 @@ The `parameter` input consists of settings used to characterize the building and
 ## 1. Parameters that are in common with Dooper
 The documentation for `system`, `controller`, `solver_options`, `objective`, `site`, `tariff` and `fuels` can be found in the dedicated [DOPER documentation](https://github.com/LBNL-ETA/DOPER/blob/master/docs/parameter.md).
 
-## 2. Defining 'parameter['facade']'
+## 2. Defining `parameter['facade']`
 This dictionary contains data needed to characterize the building and facade system:
 - `convection_window_offset`: [float] Window convection quantity offset. Default value is 4.
 - `convection_window_scale`: [float] Window convection quantity scale. Default value is 4.
@@ -35,7 +35,7 @@ This dictionary contains data needed to characterize the building and facade sys
 - `windows`: [list] List of all window zones of the facade. Note: only available if the type is `'ec-71t'`. Default value is [0, 1, 2].
 - `window_area`: [float] Total window area of the facade, in m2. Default value is 7.12.
 
-## 3. Defining parameter['occupant']
+## 3. Defining `parameter['occupant']`
 This dict contains data about the occupant comfort expectations in the building zone:
 - `equipment`: [float] Electric equipment load in room, in W. Note: only available if the zone type is `'single_office'`. Default value is 150.
 - `glare_max`: [float] Maximum acceptable value for glare. Default value is 0.4.
@@ -47,7 +47,7 @@ This dict contains data about the occupant comfort expectations in the building 
 - `temp_room_min`: [float] Minimum acceptable temperature in the building zone, in °C. Default value is 20.
 - `wpi_min`: [float] Minimum work plane illuminance, in lux. Default value is 500.
 
-## 4. Defining parameter['radiance']
+## 4. Defining `parameter['radiance']`
 This dict contains physical data needed to calculate the various dependencies (see above under `rad_cutoff` ) through Radiance:
 - `dimensions`: [dict] Dimensions of the building as well as position and size of the window(s): 
   - `depth`: [float] Depth of the building, in m. Default value is 4.57.
@@ -74,5 +74,22 @@ This dict contains physical data needed to calculate the various dependencies (s
   - `‘Center’` Uses a virtual sensor located at the center of the room.
 - `wwr`: [float] Window to wall ratio of the building zone. Default value is 0.4.
 
+## 5. Defining `parameter['wrapper']`
+This dict contains optimization settings specific to the execution of AFC:
+- `cols_fill`: [list] Columns to apply stepped fill method for rapidly changing quantities when variable timestep resampling is used, such as setpoints. Default is `['temp_room_max', 'temp_room_min']`.
+- `inputs_cutoff`: [int] Cutoff at X digits to prevent numeric noise. Default value is 6.
+- `instance_id`: [float] Unique instance identifier. Default value is 0.
+- limit_slope`: [float] limit the temperature variation, in degree Celsius per 5 minute timestep. Default value is 1.
+- `log_dir`: [str] Directory to store logs.
+- `log_overtime`: [float] Force log dump when solving time is greater than this, in sec. Default value is 55.
+- `output_list`: [list] List of the various metrics contained in the output data frame. The output metrics are [those of DOPER](https://github.com/LBNL-ETA/DOPER/blob/master/README.md), to which some AFC-specific metrics have been added.
+- `precompute_radiance`: [bool]  Flag to pre-compute radiance for all weather forecast data. This is typically only used in simulation and should be set to False.
+- `printing`: [bool] Flag to enable console printing of the solver. Default value is ‘False’.
+- `reduced_start`: [int] Time offset when variable timestep starts, in min. Default value is 60.
+- `reduced_ts`: [int] Resampled timestep for variable timestep, in min. Default value is 60.
+- `resample_variable_ts`: [bool] Flag to enable use of variable timestep in model. Default value is ‘True’.
+- `solver_dir`: [str]  Path of the solver.
+- `solver_name`: [str]  Name of the solver that is used. Example : `'cbc'`.
+- `tariff_name`: [str]  Name of the used tariff rate.
 
 
