@@ -7,7 +7,8 @@
 ----------------------------------------------------------------------------------------
 
 ## General
-This package was developed to host a suite of control algorithms developed by Lawrence Berkeley National Laboratory's [Windows Group](https://windows.lbl.gov/). Most controls are based on [Model Predictive Control](https://en.wikipedia.org/wiki/Model_predictive_control). This framework utilizes the Distributed Optimal Energy Resources ([DOPER](https://github.com/LBNL-ETA/DOPER)) to implement the algorithms.
+This publicly available control package was developed to allow easy access to integrated dynamic facade and smart building control algorithms developed by Lawrence Berkeley National Laboratory's (LBNL) [Windows Group](https://windows.lbl.gov/). Dynamic facades can be any automated facade product such as motorized blinds, shades, or electrochromic windows. The control algorithms are based on the [Model Predictive Control](https://en.wikipedia.org/wiki/Model_predictive_control) technique and utilize LBNL’s Distributed Optimal Energy Resources ([DOPER](https://github.com/LBNL-ETA/DOPER)) and Framework for Multi-Layer Control ([FMLC](https://github.com/LBNL-ETA/FMLC)) developments to implement the algorithms.
+
 
 The functionality of an *Integrated Controller* (i.e., Advanced Fenestration Control) is illustrated in the following figure. Setpoints for light levels and occupant glare sensitivity are provided as inputs. At each five minute timestep the controller receives updated information from exterior and interior sensors and controls the elctric lights and dynamc facade (e.g., motorized blinds, electrochromic windows) accordingly.
 
