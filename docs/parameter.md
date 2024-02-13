@@ -45,8 +45,34 @@ This dict contains data about the occupant comfort expectations in the building 
 - `schedule`: [str] Path to occupant schedule file to compute occupancy. 
 - `temp_room_max`: [float] Maximum acceptable temperature in the building zone, in °C. Default value is 24.
 - `temp_room_min`: [float] Minimum acceptable temperature in the building zone, in °C. Default value is 20.
-- `wpi_min`: [float] Minimum work plane illuminance, in LX. Default value is 500.
+- `wpi_min`: [float] Minimum work plane illuminance, in lux. Default value is 500.
 
+## 4. Defining parameter['radiance']
+This dict contains physical data needed to calculate the various dependencies (see above under `rad_cutoff` ) through Radiance:
+- `dimensions`: [dict] Dimensions of the building as well as position and size of the window(s): 
+  - `depth`: [float] Depth of the building, in m. Default value is 4.57.
+  - `height`: [float] Height of the building, in m. Default value is 3.35.
+  - `width`: [float] Width of the building, in m. Default value is 3.05.
+  - `window1`: [str] Position of window 1 (bottom), in cartesian coordinates, in meters. X is the width, Y is the depth, and Z is the height.  Default value is '.38 .22 2.29 .85'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
+  - `window2`: [str] Position and size of window 2 (middle), in cartesian coordinates, in meters. X is the width, Y is the depth, and Z is the height. Default value is  '.38 1.07 2.29 .85'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
+  - `window3`: [str] Position and size of window 3 (top),in cartesian coordinates, in meters. X is the width, Y is the depth, and Z is the height.  Default value is '.38 1.98 2.29 .51'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
+- `elevation`: [float] Elevation of the building from sea level, in m. Default value is 100. 
+- `location`: [dict] Data defining the location of the building:
+  - `latitude`: [float] Latitude of the building, in Degree. Default value is 37.7. 
+  - `longitude`: [float] Longitude of the building, in Degree. Default value is 122.2. 
+  - `orientation`: [float] Orientation of the building, in Angular Degree. Note that 0 corresponds to South. Default value is 0.
+  - `timezone`: [int] Timezone in which the building is located, in Hourly difference to GMT. Default value is 120. 
+  - `view_orient`: [float] Orientation of the occupant inside the building, in Degree relative to the building orientation. For ‘orientation’ 0 deg (South) a ‘view_orient’ of -90 would correspond towards East. Default value is 0.
+- `paths`: [dict] Internal paths to access resource files for the dynamic facade system required by Radiance:
+  - `rad_bsdf`: [str] Path to the resources folder. For example: `'afc/resources/radiance/BSDFs'`.
+  - `rad_config`: [str] Path to the radiance file. For example: `'afc/resources/radiance/room0.6WWR_ec.cfg'`.
+  - `rad_mtx`: [str] Path to the matrices folder. For example: `'afc/resources/radiance/matrices/ec/0.6'`.
+- `regenerate`: [bool] Flag to indicate if Radiance matrices should be regenerated. This is usually not necessary but can be forced through the flag. Default value is ‘False’.
+- `wpi_loc`: [str] Location of the modeled work plane illuminance sensing in Radiance. Supported options are: 
+  - `'23back'` Uses a virtual sensor located at the ⅔ in the back of the room.
+  - `‘all’` Uses all virtual sensors in the room and takes the average.
+  - `‘Center’` Uses a virtual sensor located at the center of the room.
+- `wwr`: [float] Window to wall ratio of the building zone. Default value is 0.4.
 
 
 
