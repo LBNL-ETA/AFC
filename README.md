@@ -39,8 +39,24 @@ from afc.defaultConfig import default_parameter
 parameter = default_parameter()
 ```
 
-Please refer to the detailed documentation for each of the parameters in Defining System Parameter Inputs for a full list on all model options and settings that can be defined within the `parameter` object. The following presents only a high-level summary.
+Please refer to the detailed documentation for each of the parameters in [Defining System Parameter Inputs](docs/parameter.md) for a full list on all model options and settings that can be defined within the `parameter` object. The following presents only a high-level summary.
 
+The parameters can be divided into two categories: 
+Those in common with the DOPER package (please see the [DOPER documentation](https://github.com/LBNL-ETA/DOPER) for more details) include the following entries:
+- `controller`: General settings of the controller such as optimization horizon, timestep, and location of solvers.
+- `fuels`: Energy providing fuels within the model to power generators and other assets. This is typically not used in AFC.
+- `objective`: Definition of the controller’s objective such as weights that are applied when constructing the optimization’s objective function.
+- `site`: Site specific general characteristics, interconnection constraints, and regulation requirements.
+- `solver_options`: Settings specific to the solver such as maximal solver time.
+- `system`: System specific settings such as enabling or disabling other distributed energy resources or load assets.
+- `tariff`: Tariff related energy and power rates. Note that tariff time periods are provided in the separate time-series input below.
+
+The parameters that are specific to AFC include the following entries:
+- `facade`: Data used to describe the building and facade system on which the controller is implemented.
+- `occupant`: Configuration of occupant comfort and internal load demand settings.
+- `radiance`: Configuration of the facade system.
+- `wrapper`: Configuration to manage the execution of AFC.
+- `zone`: Configuration of each control zone within the building.
 
 ## Example
 To test the installation and illustrate the functionality of AFC, the following command can be executed to run the [example_1.py](https://github.com/LBNL-ETA/AFC/blob/master/examples/example_1.py).
