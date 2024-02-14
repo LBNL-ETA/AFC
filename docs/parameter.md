@@ -92,7 +92,7 @@ This dict contains optimization settings specific to the execution of AFC:
 - `solver_name`: [str]  Name of the solver that is used. Example : `'cbc'`.
 - `tariff_name`: [str]  Name of the used tariff rate.
 
-## 6. Defining parameter['zone']
+## 6. Defining `parameter['zone']`
 This dict contains configuration of the building zone:
 - `cooling_efficiency`: [float] Electric efficiency of the cooling system. Default value is 0.29.
 - `cool_max`: [list] Maximum power of the cooling system, in Wth/m2.
