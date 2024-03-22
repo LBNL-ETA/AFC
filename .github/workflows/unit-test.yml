@@ -9,9 +9,7 @@ jobs:
       matrix:
         python-version: ["3.8"]
     steps:
-    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -19,23 +17,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         pip install .
-    - name: Download Radiance binaries
-      run: |
-        ver=$(gh release list -R LBNL-ETA/Radiance -L 1 | cut -f 3)
-        gh release download $ver -R LBNL-ETA/Radiance -p '*Linux.zip'
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Install Radiance
-      run: |
-        unzip Radiance_*_Linux.zip
-        tar -xvf radiance-*-Linux.tar.gz
-        mkdir buildRad
-        sudo cp -avr ./radiance-*-Linux/usr/local/radiance ./buildRad
-        export RAYPATH=.:${{ github.workspace }}/buildRad/radiance/lib
-        export PATH=$PATH:${{ github.workspace }}/buildRad/radiance/bin
-        rtrace -version
     - name: Test with pytest
       run: |
-        export RAYPATH=.:${{ github.workspace }}/buildRad/radiance/lib
-        export PATH=$PATH:${{ github.workspace }}/buildRad/radiance/bin
         pytest -rx
