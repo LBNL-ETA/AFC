@@ -283,8 +283,8 @@ class Controller(eFMU):
                     ix_st = max(data.index[0]+pd.DateOffset(minutes=5),
                                 ix-pd.DateOffset(minutes=55))
                     data.loc[ix_st:ix-pd.DateOffset(minutes=5), cols] = np.nan
-                data = \
-                    data.resample(f'{(data.index[1]-data.index[0]).total_seconds()}s').interpolate()
+                resample_ts = (data.index[1] - data.index[0]).total_seconds()
+                data = data.resample(f'{int(resample_ts)}s').interpolate()
 
                 # ensure resampling when occupancy ends
                 for ix in data.index[data[cols[0]].diff()>0]:
