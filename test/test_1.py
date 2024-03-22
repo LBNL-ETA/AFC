@@ -41,7 +41,7 @@ def test1():
     ctrl = Controller()
 
     # Make inputs
-    parameter = default_parameter(precompute_radiance=False)
+    parameter = default_parameter()
     inputs = make_inputs(parameter, df)
 
     # Query controller

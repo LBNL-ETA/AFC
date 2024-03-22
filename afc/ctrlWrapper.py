@@ -267,7 +267,7 @@ class Controller(eFMU):
 
             # Update SOC
             self.input['parameter']['zone']['temps_initial'] = self.input['temps_initial']
-            self.input['parameter']['zone']['fstate_initial'] = self.input['facade_initial']
+            self.input['parameter']['facade']['fstate_initial'] = self.input['facade_initial']
 
             # Variable timestep
             st1 = time.time()
@@ -284,7 +284,7 @@ class Controller(eFMU):
                                 ix-pd.DateOffset(minutes=55))
                     data.loc[ix_st:ix-pd.DateOffset(minutes=5), cols] = np.nan
                 data = \
-                    data.resample(f'{(data.index[1]-data.index[0]).total_seconds()}S').interpolate()
+                    data.resample(f'{(data.index[1]-data.index[0]).total_seconds()}s').interpolate()
 
                 # ensure resampling when occupancy ends
                 for ix in data.index[data[cols[0]].diff()>0]:
@@ -352,7 +352,7 @@ class Controller(eFMU):
                 self.output['uTroom'] = float(df['Temperature 0 [C]'].values[1])
             df = pd.concat([df, data], axis=1)
             df.index = (df.index.astype(np.int64) / 10 ** 6).astype(str)
-            df = df.fillna(-1)
+            df = df.astype(float).fillna(-1)
             self.output['df_output'] = df.to_dict()
             self.output['duration'] = time.time() - st
             self.output['outputs_duration'] = time.time() - st1
@@ -424,7 +424,7 @@ if __name__ == '__main__':
     weather_path = os.path.join(os.path.dirname(root), 'dev', 'resources', 'weather',
         'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv')
     weather, info = read_tmy3(weather_path, coerce_year=2023)
-    weather = weather.resample('5T').interpolate()
+    weather = weather.resample('5min').interpolate()
     st = dtm.datetime(2023, 7, 1)
     wf = weather.loc[st:st+pd.DateOffset(hours=24),]
     wf = wf[['temp_air','dni','dhi','wind_speed']+['ghi']].copy()
@@ -436,7 +436,7 @@ if __name__ == '__main__':
     # Get all variables
     print('All Input variables:', ctrl.get_model_variables())
 
-    parameter = default_parameter(precompute_radiance=False)
+    parameter = default_parameter()
     inputs = make_inputs(parameter, wf)
 
     # Query controller
