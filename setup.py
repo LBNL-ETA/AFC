@@ -20,7 +20,7 @@ with open('afc/__init__.py', 'r', encoding='utf8') as f:
     version = json.loads(f.read().split('__version__ = ')[1])
 
 setuptools.setup(
-    name="AFC",
+    name="afc",
     version=version,
     author="Gehbauer, Christoph",
     description="Advanced Facade Control",

@@ -8,7 +8,7 @@ Default configuration.
 """
 
 # pylint: disable=too-many-arguments, bare-except, too-many-locals
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, dangerous-default-value
 
 import os
 import sys
@@ -73,8 +73,8 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
 
 def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, longitude=122.2,
                         view_orient=0, timezone=120, orient=0, elevation=100, width=3.05,
-                        depth=4.57, height=3.35, window1='.38 .22 2.29 .85',
-                        window2='.38 1.07 2.29 .85', window3='.38 1.98 2.29 .51'):
+                        depth=4.57, height=3.35,
+                        windows=['.38 .22 2.29 .85', '.38 1.07 2.29 .85', '.38 1.98 2.29 .51']):
     """Default configuration for radiance.
     
     Default window parameters for 71T.
@@ -106,9 +106,12 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
     parameter['radiance']['dimensions']['width'] = width
     parameter['radiance']['dimensions']['depth'] = depth
     parameter['radiance']['dimensions']['height'] = height
-    parameter['radiance']['dimensions']['window1'] = window1
-    parameter['radiance']['dimensions']['window2'] = window2
-    parameter['radiance']['dimensions']['window3'] = window3
+    if len(windows) == len(parameter['facade']['windows']):
+        for wz, window in enumerate(windows):
+            parameter['radiance']['dimensions'][f'window{wz+1}'] = window
+    else:
+        raise ValueError(f'Number of window zones {parameter["facade"]["windows"]} does'\
+        'not match window dimensions {windows}.')
 
     # paths
     filestruct, rad_config = get_config(parameter['facade']['type'],
@@ -126,9 +129,6 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     """Default configuration for thermal zone."""
 
     parameter['zone'] = {}
-
-    # Initial state of facade
-    parameter['zone']['fstate_initial'] = parameter['facade']['fstate_initial']
 
     # Setup
     parameter['zone']['lighting_efficiency'] = lighting_efficiency # W/lx
@@ -173,14 +173,14 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     # penalty definition
     parameter['zone']['glare_diff'] = 0.1 # Lower bound of glare penalty (glare_max - glare_diff)
     parameter['zone']['glare_scale'] = 10 # Scale of glare cost function (ATTENTION absolute value)
-    parameter['zone']['view_scale'] = 0.1 # Scale of view cost function (ATTENTION absolute value)
+    parameter['zone']['view_scale'] = 0.0 # Scale of view cost function (ATTENTION absolute value)
 
     return parameter
 
 def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4,
                         temp_room_max=24, temp_room_min=20,
                         plug_load=150, occupant_load=100, equipment=150,
-                        zone_type='single_office'):
+                        zone_type='single_office', number_occupants=1):
     """Default configuration for occupant."""
 
     parameter['occupant'] = {}
@@ -194,9 +194,9 @@ def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4,
 
     # loads
     if zone_type == 'single_office':
-        parameter['occupant']['plug_load'] = plug_load # W
-        parameter['occupant']['occupant_load'] = occupant_load # W
-        parameter['occupant']['equipment'] = equipment # W
+        parameter['occupant']['plug_load'] = plug_load * number_occupants # W
+        parameter['occupant']['occupant_load'] = occupant_load * number_occupants # W
+        parameter['occupant']['equipment'] = equipment * number_occupants # W
         parameter['occupant']['occupancy_light'] = 1 # 0-unoccupied, 1-occupied
     else:
         raise ValueError(f'The zone type "{zone_type}" is not available.')
@@ -209,11 +209,13 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                       window_height=8.0, window_sill=0.5, window_width=4.5,
                       lighting_efficiency=0.24, system_cooling_eff=1/3.5,
                       system_heating_eff=0.95, zone_area=15,
-                      zone_type='single_office', weight_actuation=0.01,
-                      weight_glare=0, precompute_radiance=True,
+                      zone_type='single_office', weight_actuation=0,
+                      weight_glare=0, precompute_radiance=False,
                       location_latitude=37.85, location_longitude=-122.24,
                       location_orientation=0, view_orient=0,
-                      timezone=120, elevation=100):
+                      timezone=120, elevation=100, number_occupants=1,
+                      schedule=None, wpi_min=500, glare_max=0.4, instance_id=0,
+                      debug=False):
     """Function to load the default parameters for AFC."""
 
     window_area = ft2_to_m2((window_height-window_sill) * window_width * window_count)
@@ -252,18 +254,22 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                                     width = ft_to_m(room_width),
                                     depth = ft_to_m(room_depth),
                                     height = ft_to_m(room_height),
-                                    window1 = '.38 .22 2.29 .85',
-                                    window2 = '.38 1.07 2.29 .85',
-                                    window3 = '.38 1.98 2.29 .51')
+                                    windows=[
+                                        '.38 .22 2.29 .85',
+                                        '.38 1.07 2.29 .85',
+                                        '.38 1.98 2.29 .51'
+                                    ]
+                                )
 
     # setup occupant
     parameter = get_occupant_config(parameter,
-                                    schedule=None,
-                                    wpi_min=500,
-                                    glare_max=0.4,
-                                    temp_room_max=24,
-                                    temp_room_min=20,
-                                    zone_type = zone_type)
+                                    schedule = schedule,
+                                    wpi_min = wpi_min,
+                                    glare_max = glare_max,
+                                    temp_room_max = 24,
+                                    temp_room_min = 20,
+                                    zone_type = zone_type,
+                                    number_occupants = number_occupants)
 
     # Enable HVAC control
     parameter['system']['hvac_control'] = hvac_control
@@ -287,10 +293,10 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
 
     # Defaults for wrapper
     parameter['wrapper'] = {}
-    parameter['wrapper']['instance_id'] = 0 # Unique instance id
-    parameter['wrapper']['printing'] = False # Console printing of solver
+    parameter['wrapper']['instance_id'] = instance_id # Unique instance id
+    parameter['wrapper']['printing'] = debug # Console printing of solver
     parameter['wrapper']['log_overtime'] = 60-5 # Log inputs when long solving time, in seconds
-    parameter['wrapper']['log_dir'] = 'logs' # Directory to store logs
+    parameter['wrapper']['log_dir'] = './logs' # Directory to store logs
     parameter['wrapper']['inputs_cutoff'] = 6 # Cutoff at X digits to prevent numeric noise
     parameter['wrapper']['resample_variable_ts'] = True # Use variable timestep in model
     parameter['wrapper']['reduced_start'] = 1*60 # Time offset when variable ts starts, in minutes

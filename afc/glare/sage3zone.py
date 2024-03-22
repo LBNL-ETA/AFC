@@ -238,7 +238,9 @@ class Sage3zone(object):
         elif self.config['view_orient'] == 180: # N
             gm_start_azi = 0
             gm_end_azi = 0
-
+        else:
+            raise ValueError(f'The selected view_orient of {self.config["view_orient"]} is not valid.' \
+                + 'Please use one of 0: south, 90: west, 270: east, 180: north')
         start_lx = self.view_config['start_lx']
         end_lx = self.view_config['end_lx']
         gmodes = [False] * len(self.alts)
