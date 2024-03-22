@@ -53,9 +53,12 @@ This dict contains physical data needed to calculate the various dependencies (s
   - `depth`: [float] Depth of the building, in m. Default value is 4.57.
   - `height`: [float] Height of the building, in m. Default value is 3.35.
   - `width`: [float] Width of the building, in m. Default value is 3.05.
-  - `window1`: [str] Position of window 1 (bottom), in cartesian coordinates, in meters. X is the width, Y is the depth, and Z is the height.  Default value is '.38 .22 2.29 .85'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
-  - `window2`: [str] Position and size of window 2 (middle), in cartesian coordinates, in meters. X is the width, Y is the depth, and Z is the height. Default value is  '.38 1.07 2.29 .85'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
-  - `window3`: [str] Position and size of window 3 (top),in cartesian coordinates, in meters. X is the width, Y is the depth, and Z is the height.  Default value is '.38 1.98 2.29 .51'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
+  - `window1`: [str] Position of window 1 (bottom), in cartesian coordinates, in meters. Default value is '.38 .22 2.29 .85'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
+    
+![window_coordinates.png](window_coordinates.png)
+
+  - `window2`: [str] Position and size of window 2 (middle), in cartesian coordinates, in meters. Default value is  '.38 1.07 2.29 .85'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
+  - `window3`: [str] Position and size of window 3 (top),in cartesian coordinates, in meters. Default value is '.38 1.98 2.29 .51'. These values represent respectively: starting X, starting Y, width, and height. More specifically, the origin of x=0; y=0 is the ground level and the south facade is always at -y, north at +y, west at -x, and east at +x.
 - `elevation`: [float] Elevation of the building from sea level, in m. Default value is 100. 
 - `location`: [dict] Data defining the location of the building:
   - `latitude`: [float] Latitude of the building, in Degree. Default value is 37.7. 
@@ -96,7 +99,6 @@ This dict contains optimization settings specific to the execution of AFC:
 This dict contains configuration of the building zone:
 - `cooling_efficiency`: [float] Electric efficiency of the cooling system. Default value is 0.29.
 - `cool_max`: [list] Maximum power of the cooling system, in Wth/m2.
-- `fstate_initial`: [int] Initial state of each window zone. Equals the parameter in [‘facade’].
 - `glare_diff`: [float]  Lower bound of glare penalty (glare_max - glare_diff). Default value is 0.1.
 - `glare_scale`: [float]  Scale of glare cost function (ATTENTION absolute value). Default value is 10.
 - `heating_efficiency`: [float] Electric efficiency of the heating system. Default value is 0.95.
