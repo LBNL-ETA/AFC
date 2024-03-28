@@ -329,12 +329,13 @@ class Controller(eFMU):
             # with open('cfg_{}.json'.format(data.index[0]), 'w') as f:
             #     f.write(json.dumps(cfg))
 
-            print_error = self.input['parameter']['wrapper']['printing']
+            printing = self.input['parameter']['wrapper']['printing']
             self.res = \
-                self.controller.do_optimization(self.data, parameter=self.input['parameter'],
+                self.controller.do_optimization(self.data,
+                                                parameter=self.input['parameter'],
                                                 options=self.input['parameter']['solver_options'],
-                                                tee=self.input['parameter']['wrapper']['printing'],
-                                                print_error=print_error)
+                                                tee=printing,
+                                                print_error=printing)
             duration, objective, df, model, result, termination, parameter = self.res
             self.output['optall_duration'] = time.time() - st1
 
@@ -342,7 +343,7 @@ class Controller(eFMU):
             st1 = time.time()
             self.output['opt_duration'] = float(duration)
             self.output['opt_termination'] = str(termination)
-            self.output['opt_objective'] = float(objective) if objective else np.nan
+            self.output['opt_objective'] = float(objective) if objective else None
             self.output['glaremode'] = list(gmodes)
             if objective:
                 uShade = df[[f'Facade State {z}' for \
@@ -366,9 +367,11 @@ class Controller(eFMU):
 
         except Exception as e:
             self.msg += f'\nERROR: {e}\n\n{traceback.format_exc()}'
+            for k in self.output:
+                self.output[k] = None
         return self.msg
 
-def make_inputs(parameter, df):
+def make_inputs(parameter, df, ext_df=pd.DataFrame()):
     """Utility function to make inputs."""
 
     df = df.copy(deep=True)
@@ -397,6 +400,10 @@ def make_inputs(parameter, df):
     df.loc[:, 'temp_slab_min'] = 0
     df.loc[:, 'temp_wall_max'] = 1e3
     df.loc[:, 'temp_wall_min'] = 0
+
+    # Add External inputs (if any)
+    for c in ext_df:
+        df[c] = ext_df[c]
 
     # Map parameter and make Inputs object
     inputs = {}
