@@ -208,7 +208,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                       room_width=10, room_depth=15, window_count=2,
                       window_height=8.0, window_sill=0.5, window_width=4.5,
                       lighting_efficiency=0.24, system_cooling_eff=1/3.5,
-                      system_heating_eff=0.95, zone_area=15,
+                      system_heating_eff=0.95,
                       zone_type='single_office', weight_actuation=0,
                       weight_glare=0, precompute_radiance=False,
                       location_latitude=37.85, location_longitude=-122.24,
@@ -220,6 +220,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
 
     window_area = ft2_to_m2((window_height-window_sill) * window_width * window_count)
     facade_area = ft2_to_m2(room_width * room_height)
+    zone_area = ft2_to_m2(room_width * room_depth)
     wwr = window_area / facade_area
 
     # initialize with defaults for optimization
