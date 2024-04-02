@@ -456,7 +456,8 @@ def control_model(inputs, parameter):
                + model.sum_export_revenue * parameter['objective']['weight_export'] \
                + model.sum_zone_actuation * parameter['objective']['weight_actuation'] \
                + model.sum_glare_penalty * parameter['objective']['weight_glare'] \
-               + model.sum_view_penalty * parameter['objective']['weight_view']
+               + model.sum_view_penalty * parameter['objective']['weight_view'] \
+               + model.co2_total * parameter['objective']['weight_ghg']
                #+ model.sum_regulation_revenue * parameter['objective']['weight_regulation']
     model.objective = Objective(rule=objective_function, sense=minimize, doc='objective function')
     return model
@@ -499,6 +500,8 @@ def afc_output_list():
                         'index': 'temps'}) # room, slab
     ctrlOutputs.append({'data': 'zone_temp_max', 'df_label': 'Temperature %s Max [C]',
                         'index': 'temps'}) # room, slab
+    ctrlOutputs.append({'data': 'co2_profile_total', 'df_label': 'GHG Emissions [kg]'})
+
     for d in ctrlOutputs:
         d['name'] = d['data']
     return ctrlOutputs

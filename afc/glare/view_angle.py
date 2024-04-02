@@ -17,7 +17,7 @@ def sun_in_view(view_dist, view_height, window_bottom_height, window_top_height,
         right_azi: Right aziumth when sun in view through the window
     """
     if view_height > window_top_height:
-        print("WARNING: view_angle: Window below viewpoint.")
+        # print("WARNING: view_angle: Window below viewpoint.")
         bot_alt, top_alt, left_azi, right_azi, view_window_angle = 0, 0, 0, 0, 0
     else:
         bot_vw = abs(window_bottom_height - view_height)

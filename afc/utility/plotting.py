@@ -83,8 +83,8 @@ def plot_standard1(data, title=None, plot=True, tight=True):
                  labels=['Room','Slab'])
     axs[5].plot(data[['Temperature 0 Max [C]']], color='blue', linestyle='--')
     axs[5].plot(data[['Temperature 0 Min [C]']], color='red', linestyle='--')
-    axs[5].plot(data[['Temperature 1 Max [C]']], color='blue', linestyle=':')
-    axs[5].plot(data[['Temperature 1 Min [C]']], color='red', linestyle=':')
+    #axs[5].plot(data[['Temperature 1 Max [C]']], color='blue', linestyle=':')
+    #axs[5].plot(data[['Temperature 1 Min [C]']], color='red', linestyle=':')
     plot_plot_xy(axs[6],data[['Glare [-]']],title='Glare Level',ylab='DGP [1]',
                  labels=['Glare'])
     axs[6].plot(data[['Glare Max [-]']], color='black', linestyle='--')

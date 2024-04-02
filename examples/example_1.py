@@ -35,7 +35,7 @@ def example1():
     weather_path = os.path.join(os.path.dirname(root), 'dev', 'resources', 'weather', 
         'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv')
     weather, info = read_tmy3(weather_path, coerce_year=2023)
-    #weather = weather.resample('5T').interpolate()
+    #weather = weather.resample('5min').interpolate()
     st = dtm.datetime(2023, 7, 1)
     wf = weather.loc[st:st+pd.DateOffset(hours=24),]
     df = wf[['temp_air','dni','dhi','wind_speed']].copy()
@@ -49,7 +49,6 @@ def example1():
     inputs = make_inputs(parameter, df)
 
     # Query controller
-    #log = ctrl.do_step(inputs=inputs) # first run to initialize
     log = ctrl.do_step(inputs=inputs) # run controller
     
     # Print results
@@ -59,7 +58,7 @@ def example1():
     #                                    'opt_duration','outputs_duration','duration']))
     #print('Optimization:')
     #pprint.pprint(ctrl.get_output(keys=['opt_objective','opt_duration','opt_termination','duration']))
-    df = pd.DataFrame(ctrl.get_output(keys=['df_output'])['df_output'])
+    df = pd.DataFrame(ctrl.get_output(keys=['output-data'])['output-data'])
     df.index = pd.to_datetime(pd.to_numeric(df.index), unit='ms')
     print('Facade actuation during the day (when DNI > 0).')
     print('Facade 0 = bottom zone, Facade 1 = middle zone, Facade 2 = top zone')

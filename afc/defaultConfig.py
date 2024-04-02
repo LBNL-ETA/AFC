@@ -283,6 +283,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     parameter['objective']['weight_actuation'] = weight_actuation # Weight of facade actuation
     parameter['objective']['weight_glare'] = weight_glare # Weight of glare penalty in objective
     parameter['objective']['weight_view'] = 0 # Weight of view penalty in objective
+    parameter['objective']['weight_ghg'] = 0 # Weight of GHG emissions
     parameter['solver_options'] = {} # Pyomo solver options
     parameter['solver_options']['seconds'] = int(60) # Maximal solver time, in seconds
     #parameter['solver_options']['maxIterations'] = int(1e6) # Maximal iterations
