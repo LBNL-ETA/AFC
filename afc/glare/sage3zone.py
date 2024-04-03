@@ -99,7 +99,10 @@ class Sage3zone(object):
         if dni + dhi > 0:
             alt, azi_shift, inci, azi = self.get_solar(ts, weather_forecast)            
             if inci != 0:
-                self.glare_mode(alt, azi_shift, inci)
+                self.glare_mode_many(alt, azi_shift, inci)
+                self.bot_gmode = self.gmodes[0]
+                self.mid_gmode = self.gmodes[0]
+                self.top_gmode = self.gmodes[0]
                 ctrl = self.daylight_mode_c(self.bot_gmode, self.mid_gmode, self.top_gmode, inci)
                 #ctrl = self.daylight_mode_b(mo, self.bot_gmode, self.mid_gmode, self.top_gmode, inci)
             else:
@@ -258,7 +261,6 @@ class Sage3zone(object):
         for ix, zone in enumerate(self.alts.index):
             self.gmodes[ix] = gmodes[ix]
         return self.gmodes
-
 
 if __name__ == '__main__':
     import pandas as pd

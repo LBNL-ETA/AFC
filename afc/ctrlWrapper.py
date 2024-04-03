@@ -360,9 +360,14 @@ class Controller(eFMU):
             self.output['glaremode'] = list(gmodes)
 
             # Compute thermostat setpoints
-            thermostat = compute_thermostat_setpoints(df, self.output['valid'], True, False)
+            thermostat = compute_thermostat_setpoints(
+                df, cool_set, heat_set, self.output['valid'], True, False
+            )
             self.output['ctrl-thermostat'] = thermostat
-            self.output['ctrl-troom'] = float(df['Temperature 0 [C]'].values[1])
+            if objective:
+                self.output['ctrl-troom'] = float(df['Temperature 0 [C]'].values[1])
+            else:
+                self.output['ctrl-troom'] = None
 
             # Compute shade state
             if objective:

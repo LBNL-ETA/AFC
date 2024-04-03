@@ -7,6 +7,8 @@
 Thermostat control module.
 """
 
+# pylint: disable=too-many-arguments
+
 def afc_to_hvac_setpoint(ctrl_outputs, tdead=0.5):
     """Utility to convert from AFC to thermostat setpoints."""
 
@@ -44,14 +46,17 @@ def afc_to_hvac_setpoint(ctrl_outputs, tdead=0.5):
             'csp': new_cool_set,
             'hsp': new_heat_set}
 
-def compute_thermostat_setpoints(df, feasible, control_hvac, occupied):
+def compute_thermostat_setpoints(df, cool_set, heat_set, feasible, control_hvac, occupied):
     """wrapper to compute thermostat setpoints"""
 
-    cool_set = df['Temperature 0 Max [C]'].values[0]
-    heat_set = df['Temperature 0 Min [C]'].values[0]
-    t_room = df['Temperature 0 [C]'].values[1]
-    power_cool = df['Power Cooling [W]'].iloc[0]
-    power_heat = df['Power Heating [W]'].iloc[0]
+    if feasible:
+        t_room = df['Temperature 0 [C]'].values[1]
+        power_cool = df['Power Cooling [W]'].iloc[0]
+        power_heat = df['Power Heating [W]'].iloc[0]
+    else:
+        t_room = 0
+        power_cool = 0
+        power_heat = 0
 
     ctrl_outputs = {
         'hvac_control': control_hvac,

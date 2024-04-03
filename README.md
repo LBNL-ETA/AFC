@@ -31,7 +31,7 @@ Standard usage of the AFC package follows the sequence of steps outlined in the 
 The AFC package requires sets of parameters and inputs that describe the optimization problem. On the one hand, the parameters are quantities that describe the physical system on which the optimization is performed. Parameters include, for example, the location and size of the building, its number of windows or the number of occupants in the room. On the other hand, data inputs describe the climatic context of the optimization. These are essentially exogeneous meteorological forecasts of the sun's irradiance on the building. Unlike parameters, data inputs are time-dependent variables. 
 
 #### 1.1 Define system parameters
-The `parameter` object is a dictionary containing parameter values describing the system to be controlled by AFC. The built-in function `defaultConfing` contains default parameters which can be helpful to get started. Users can modify the parameters to create a setup that meets their specific building. An alternative way to establish the parameters is through a JSON test file. For more information see [here](docs/json_configuration.md).
+The `parameter` object is a dictionary containing parameter values describing the system to be controlled by AFC. The built-in function `defaultConfing` contains default parameters which can be helpful to get started. Users can modify the parameters to create a setup that meets their specific building. An alternative way to establish the parameters is through a JSON text file. For more information see [here](docs/json_configuration.md).
 
 ```python
 # initialize afc with default parameters 
@@ -122,7 +122,7 @@ The AFC controller provides a variety of outputs ranging from the desired contro
 # get all outputs
 ctrl.get_output()
 # get only facade setpoints
-ctrl.get_output(keys=['output-data'])
+ctrl.get_output(keys=['ctrl-facade'])
 ```
 
 These full list of outputs is here:
