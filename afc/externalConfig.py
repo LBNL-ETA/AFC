@@ -22,15 +22,15 @@ try:
 except:
     root = os.getcwd()
 
-def read_json_config(config_path, json_conly=False):
+def read_json_config(config_path, json_only=False):
     """Utility function to parse a json configuration file.
 
     Args: 
         config_path (str): path to the json configuration file
-        json_conly (bool): boolean determining whether to return only the json configuration data or use it to update the AFC parameters.
+        json_only (bool): boolean determining whether to return only the json configuration data or use it to update the AFC parameters.
         
     Returns:
-        if json_conly == TRUE:
+        if json_only == TRUE:
             dict: dictionary containing the json file data
         else:
             dict: dictionary containing AFC parameters updated using to the json configuration      
@@ -39,12 +39,12 @@ def read_json_config(config_path, json_conly=False):
     # Import and read the new configuration from the json file
     with open(config_path, encoding='utf8') as f:
         config = json.load(f)
-    if json_conly:
+    if json_only:
         return config
     return config_from_dict(config)
 
 DEFAULT_JSON_PATH = os.path.join(root, 'resources', 'config', 'example_config.json')
-DEFAULT_DICT = read_json_config(DEFAULT_JSON_PATH, json_conly=True)
+DEFAULT_DICT = read_json_config(DEFAULT_JSON_PATH, json_only=True)
 
 def config_from_dict(config):
     """Utility function to make configuration from a dictionary.
@@ -56,7 +56,7 @@ def config_from_dict(config):
         dict: dictionary containing AFC parameters updated using to the json configuration
     """
 
-    for k in read_json_config(DEFAULT_JSON_PATH, json_conly=True):
+    for k in read_json_config(DEFAULT_JSON_PATH, json_only=True):
         if k not in config:
             warnings.warn(f'The configuration of {k} is missing, using default.')
 
@@ -80,6 +80,7 @@ def config_from_dict(config):
     wpi_min = 250 + max(0, (config['occupant_brightness'] - 80) * 5)
 
     # Upload default_parameter with arguments from json
+    window_full_width = config['window_width'] * config['window_count']
     parameter = default_parameter(tariff_name=config['tariff_name'],
                                   facade_type=config['system_type'],
                                   room_height=config['room_height'],
@@ -87,7 +88,7 @@ def config_from_dict(config):
                                   room_depth=config['room_depth'],
                                   window_height=config['window_height'],
                                   window_sill=config['window_sill'],
-                                  window_width=config['room_width'],
+                                  window_width=window_full_width,
                                   system_cooling_eff=1/config['system_cooling_eff'],
                                   location_latitude=config['location_latitude'],
                                   location_longitude=config['location_longitude'],
@@ -108,11 +109,11 @@ def config_from_dict(config):
     # Update windows position and dimensions
     for wz in parameter['facade']['windows']:
         # all windows have same width
-        window_width = ft_to_m(config['window_width'])
+        window_width = ft_to_m(window_full_width)
         # all windows have same height
         window_height = ft_to_m(config['window_height'] / len(parameter['facade']['windows']))
         # need to make sure windows are centered
-        x_origin = ft_to_m((config['room_width'] - config['window_width']) / 2)
+        x_origin = ft_to_m((config['room_width'] - window_full_width) / 2)
         # new window starts at sill + X*windows
         y_origin = ft_to_m(config['window_sill']) + wz *  window_height
         window = f'{x_origin} {y_origin} {window_width} {window_height}'
