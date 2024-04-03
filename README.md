@@ -15,7 +15,7 @@ A general overview of integrated dynamic facade and smart building controls can 
 The Advanced Fenestration Controller (AFC) is designed to minimize electricity cost and/or emissions in buildings through the control of dynamic facades (for example electrochromic windows, blinds, and shades), and lighting and HVAC systems. The AFC also considers a variety of control parameters such as visual and thermal comfort (glare, daylight, view, health, and wellness). It uses weather forecasts, and a set of measurements (room and floor temperature) to optimize control setpoints over a specified time horizon of typically 24 hours. The functionality illustrated below:
 
 
-![illustrate_system.jpg](docs/illustrate_system.jpg)
+![system_documentation.png](docs/system_documentation.png)
 
 *Please note that the AFC package and especially the examples are still under development. Please open an issue for specific questions.*
 
