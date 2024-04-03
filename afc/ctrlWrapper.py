@@ -269,7 +269,11 @@ class Controller(eFMU):
             data['battery_reg'] = 0
 
             # Update SOCs
+            if isinstance(self.input['temps-initial'], str):
+                self.input['temps-initial'] = json.loads(self.input['temps-initial'])
             self.parameter['zone']['temps_initial'] = self.input['temps-initial']
+            if isinstance(self.input['facade-initial'], str):
+                self.input['facade-initial'] = json.loads(self.input['facade-initial'])
             self.parameter['facade']['fstate_initial'] = self.input['facade-initial']
 
             # Make sure temp_initial is feasible
