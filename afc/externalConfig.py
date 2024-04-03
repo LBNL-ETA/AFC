@@ -27,7 +27,8 @@ def read_json_config(config_path, json_only=False):
 
     Args: 
         config_path (str): path to the json configuration file
-        json_only (bool): boolean determining whether to return only the json configuration data or use it to update the AFC parameters.
+        json_only (bool): boolean determining whether to return only
+        the json configuration data or use it to update the AFC parameters.
         
     Returns:
         if json_only == TRUE:

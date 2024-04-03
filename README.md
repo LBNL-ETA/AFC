@@ -31,7 +31,7 @@ Standard usage of the AFC package follows the sequence of steps outlined in the 
 The AFC package requires sets of parameters and inputs that describe the optimization problem. On the one hand, the parameters are quantities that describe the physical system on which the optimization is performed. Parameters include, for example, the location and size of the building, its number of windows or the number of occupants in the room. On the other hand, data inputs describe the climatic context of the optimization. These are essentially exogeneous meteorological forecasts of the sun's irradiance on the building. Unlike parameters, data inputs are time-dependent variables. 
 
 #### 1.1 Define system parameters
-The `parameter` object is a dictionary containing parameter values describing the system to be controlled by AFC. The built-in function `defaultConfing` contains default parameters which can be helpful to get started. Users can modify the parameters to create a setup that meets their specific building.
+The `parameter` object is a dictionary containing parameter values describing the system to be controlled by AFC. The built-in function `defaultConfing` contains default parameters which can be helpful to get started. Users can modify the parameters to create a setup that meets their specific building. An alternative way to establish the parameters is through a JSON test file. For more information see [here](docs/json_configuration.md).
 
 ```python
 # initialize afc with default parameters 
@@ -122,41 +122,48 @@ The AFC controller provides a variety of outputs ranging from the desired contro
 # get all outputs
 ctrl.get_output()
 # get only facade setpoints
-ctrl.get_output(keys=['uShade'])
+ctrl.get_output(keys=['output-data'])
 ```
 
 These full list of outputs is here:
-- `df_output`: Dataframe containing detailed time series data from the optimization (detailed below). Typically only used for debugging or visualizations.
-- `duration`: Total duration of the whole controller iteration, in sec.
-- `glaremode`: Indication if any of the window zones is in glare mode, as a list of booleans.
-- `glare_duration`: Duration to calculate window glare modes, in sec.
-- `optall_duration`: Total duration of the optimization process, in sec.
-- `opt_duration`: Duration to solve the optimization problem, in sec.
-- `opt_objective`: Optimal value of the objective function.
-- `opt_termination`: Status of optimization indicating whether the solver has reached an optimal solution, as string.
-- `outputs_duration`: Duration to generate the outputs, in sec.
-- `rad_duration`: Duration to calculate the radiance inputs, in sec.
-- `uShade`: Control setpoint for dynamic facade, as list of setpoints for each zone.
-- `uTroom`: Control setpoint for HVAC thermostat, in °C.
-- `varts_duration`: Duration to resample for variable-timestep inputs, in sec.
+- `output-data`: Dataframe containing detailed time series data from the optimization (detailed below). Typically only used for debugging or visualizations.
+- `ctrl-facade`: Control setpoint for dynamic facade, as list of setpoints for each zone.
+- `ctrl-thermostat`: 
+    - `feasible`: Boolean set to ‘True’ if the controller has been able to find optimal setpoints. 
+    - `mode`: Operational mode of the HVAC system. Possible values are ‘X’ for no control, ‘F’ for floating, ‘C’ for cooling, and ‘H’ for heating
+    - `csp`: Control setpoint for cooling thermostat, in °C.
+    - `hsp`: Control setpoint for heating thermostat, in °C.
+- `ctrl-troom`: Control setpoint for HVAC thermostat, in °C.
+- `duration`: 
+    - `all`: Total duration of the whole controller iteration, in sec.
+    - `glare`: Duration to calculate window glare modes, in sec.
+    - `optall`: Total duration of the optimization process, in sec.
+    - `outputs`: Duration to solve the optimization problem, in sec.
+    - `radiance`: Duration to calculate the radiance inputs, in sec.
+    - `varts`: duration to resample for variable-timestep inputs, in sec.
+- `opt-stats`:
+    - `duration`: Duration of the optimization, in sec.
+    - `objective`: Optimal value of the objective function.
+    - `termination`: Status of optimization indicating whether the solver has reached an optimal solution, as string.
 
-The `df_output` is a special entry as it contains time series data for all the inputs and outputs of the optimization process. It is not necessary for a general user to understand these, but might be important for developers or debugging. The `df_output` can be formatted into a pandas dataframe and subsequently easily plotted and analyzed:
+
+The `output-data` is a special entry as it contains time series data for all the inputs and outputs of the optimization process. It is not necessary for a general user to understand these, but might be important for developers or debugging. The `output-data` can be formatted into a pandas dataframe and subsequently easily plotted and analyzed:
 
 ```python
 # convert df_outputs to pandas
-df = pd.DataFrame(ctrl.get_output(keys=['df_output'])['df_output'])
+df = pd.DataFrame(ctrl.get_output(keys=['output-data'])['output-data'])
 df.index = pd.to_datetime(df.index, unit='ms')
-# remove slab constraints for plotting
-df['Temperature 1 Min [C]'] = None
-df['Temperature 1 Max [C]'] = None
+
 # make exmaple plot of results
 from afc.utility.plotting import plot_standard1
-plot_standard1(pd.concat([wf, df], axis=1).ffill().iloc[:-1])
+plot_standard1(df.iloc[:-1])
+
 ```
 
-The detailed time series output data stored in `df_output` is provided as indexed dictionary:
+The detailed time series output data stored in `output-data` is provided as indexed dictionary:
 - `artificial Illuminance`: Illuminance provided by artificial lighting, in lux.
 - `export Power`: Electricity generated local generation which is fed back into the grid, in kW.
+- `GHG Emissions`: Emissions associated with heating/cooling the room, in kg.
 - `hour`: Hour of the day.
 - `import Power`: Total amount of electricity consumed by the whole building site, in kW.
 - `load Power`: Amount of electricity consumed by the building, in kW.
