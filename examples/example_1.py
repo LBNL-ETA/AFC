@@ -2,6 +2,7 @@
 AFC example1 test module.
 """
 
+import io
 import os
 import sys
 import time
@@ -58,8 +59,7 @@ def example1():
     #                                    'opt_duration','outputs_duration','duration']))
     #print('Optimization:')
     #pprint.pprint(ctrl.get_output(keys=['opt_objective','opt_duration','opt_termination','duration']))
-    df = pd.DataFrame(ctrl.get_output(keys=['output-data'])['output-data'])
-    df.index = pd.to_datetime(pd.to_numeric(df.index), unit='ms')
+    df = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
     print('Facade actuation during the day (when DNI > 0).')
     print('Facade 0 = bottom zone, Facade 1 = middle zone, Facade 2 = top zone')
     print('State 0.0 = fully tinted, State 1.0 and 2.0 = intermediate tint, state 3.0 = clear (double low-e)\n')

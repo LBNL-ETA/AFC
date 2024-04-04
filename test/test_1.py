@@ -2,6 +2,7 @@
 AFC example1 test module.
 """
 
+import io
 import os
 import sys
 import time
@@ -46,8 +47,7 @@ def test1():
 
     # Query controller
     ctrl.do_step(inputs=inputs)
-    df = pd.DataFrame(ctrl.get_output(keys=['output-data'])['output-data'])
-    df.index = pd.to_datetime(df.index, unit='ms')
+    df = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
 
     # check
     res = ctrl.get_output(keys=['opt-stats', 'duration'])
