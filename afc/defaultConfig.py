@@ -312,6 +312,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     output_list = default_output_list(parameter) + afc_output_list()
     parameter['wrapper']['output_list'] = output_list
     parameter['wrapper']['tariff_name'] = tariff_name
+    parameter['wrapper']['compute_loads'] = False
 
     return parameter
 

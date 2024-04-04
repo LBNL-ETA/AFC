@@ -147,11 +147,11 @@ These full list of outputs is here:
     - `termination`: Status of optimization indicating whether the solver has reached an optimal solution, as string.
 
 
-The `output-data` is a special entry as it contains time series data for all the inputs and outputs of the optimization process. It is not necessary for a general user to understand these, but might be important for developers or debugging. The `output-data` can be formatted into a pandas dataframe and subsequently easily plotted and analyzed:
+The `output-data` is a special entry as it contains time series data for all the inputs and outputs of the optimization process. It is not necessary for a general user to understand these, but might be important for developers or for debugging. The `output-data` can be formatted into a pandas dataframe and subsequently easily plotted and analyzed:
 
 ```python
 # convert df_outputs to pandas
-df = pd.DataFrame(ctrl.get_output(keys=['output-data'])['output-data'])
+df = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
 df.index = pd.to_datetime(df.index, unit='ms')
 
 # make exmaple plot of results

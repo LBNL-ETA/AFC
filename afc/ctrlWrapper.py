@@ -12,6 +12,7 @@ Main controller wrapper module.
 # pylint: disable=too-many-branches, too-many-statements, broad-exception-caught
 # pylint: disable=unused-variable
 
+import io
 import os
 import sys
 import time
@@ -143,11 +144,15 @@ class Controller(eFMU):
             self.msg = ''
 
             # Parse input dataframe
-            inputs = pd.DataFrame().from_dict(self.input['input-data'])
-            inputs.index = pd.to_datetime(inputs.index)#, unit='ms')
+            inputs = pd.read_json(io.StringIO(self.input['input-data']))
+            inputs.index = pd.to_datetime(inputs.index)
 
             # configuration
             self.parameter = self.input['parameter']
+
+            # add demand profiles
+            if self.parameter['wrapper']['compute_loads']:
+                inputs = make_inputs(self.parameter, inputs, return_json=False)['input-data']
 
             # Setup controller
             if self.init:
@@ -380,9 +385,8 @@ class Controller(eFMU):
                 #uShade = df[['Tint Bottom [-]', 'Tint Middle [-]', 'Tint Top [-]']].iloc[0].values
                 self.output['ctrl-facade'] = [round(float(u),1) for u in uShade]
 
-            df.index = (df.index.astype(np.int64) / 10 ** 6).astype(str)
             df = df.astype(float).fillna(-1)
-            self.output['output-data'] = df.to_dict()
+            self.output['output-data'] = df.to_json()
             self.output['duration']['outputs'] = time.time() - st1
             self.output['duration']['all'] = time.time() - st
 
@@ -399,7 +403,7 @@ class Controller(eFMU):
                 self.output[k] = None
         return self.msg
 
-def make_inputs(parameter, df, ext_df=pd.DataFrame()):
+def make_inputs(parameter, df, ext_df=pd.DataFrame(), return_json=True):
     """Utility function to make inputs."""
 
     df = df.copy(deep=True)
@@ -422,6 +426,8 @@ def make_inputs(parameter, df, ext_df=pd.DataFrame()):
         raise NotImplementedError
 
     # Default inputs
+    if not 'wind_speed' in df.columns:
+        df.loc[:, 'wind_speed'] = 0
     df.loc[:, 'generation_pv'] = 0
     df.loc[:, 'load_demand'] = 0
     df.loc[:, 'temp_slab_max'] = 1e3
@@ -436,7 +442,10 @@ def make_inputs(parameter, df, ext_df=pd.DataFrame()):
 
     # Map parameter and make Inputs object
     inputs = {}
-    inputs['input-data'] = df.to_dict()
+    if return_json:
+        inputs['input-data'] = df.to_json()
+    else:
+        inputs['input-data'] = df
     inputs['wf-all'] = None
     inputs['facade-initial'] = parameter['facade']['fstate_initial']
     inputs['temps-initial'] = parameter['zone']['temps_initial']
@@ -477,8 +486,7 @@ if __name__ == '__main__':
     print('Log-message:\n', ctrl.do_step(inputs=inputs))
     print('Duration:\n', ctrl.get_output(keys=['duration']))
     print('Optimization:\n', ctrl.get_output(keys=['opt-stats']))
-    df = pd.DataFrame(ctrl.get_output(keys=['output-data'])['output-data'])
-    df.index = pd.to_datetime(pd.to_numeric(df.index), unit='ms')
+    df = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
 
     try:
         plot_standard1(pd.concat([wf, df], axis=1).ffill().iloc[:-1])
