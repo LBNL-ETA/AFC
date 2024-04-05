@@ -408,33 +408,35 @@ def make_inputs(parameter, df, ext_df=pd.DataFrame(), return_json=True):
 
     df = df.copy(deep=True)
 
-    # Internal demand
-    df.loc[:, 'plug_load'] = parameter['occupant']['plug_load'] # W
-    df.loc[:, 'occupant_load'] = parameter['occupant']['occupant_load'] # W
-    df.loc[:, 'equipment'] = parameter['occupant']['equipment'] # W
-    df.loc[:, 'occupancy_light'] = parameter['occupant']['occupancy_light'] # 0-unocc, 1-occ
-
-    # Occupant constraints
-    df.loc[:, 'wpi_min'] = parameter['occupant']['wpi_min']
-    df.loc[:, 'glare_max'] = parameter['occupant']['glare_max']
-    df.loc[:, 'temp_room_max'] = parameter['occupant']['temp_room_max']
-    df.loc[:, 'temp_room_min'] = parameter['occupant']['temp_room_min']
-
     # Time-variable schedule
     if parameter['occupant']['schedule']:
         print('ERROR: Not implemented!')
         raise NotImplementedError
 
+    # Define default columns
+    df_col_map = {
+        'plug_load': parameter['occupant']['plug_load'], # W
+        'occupant_load': parameter['occupant']['occupant_load'], # W
+        'equipment': parameter['occupant']['equipment'], # W
+        'occupancy_light': parameter['occupant']['occupancy_light'], # 0-unocc, 1-occ
+        'wpi_min': parameter['occupant']['wpi_min'],
+        'glare_max': parameter['occupant']['glare_max'],
+        'temp_room_max': parameter['occupant']['temp_room_max'],
+        'temp_room_min': parameter['occupant']['temp_room_min'],
+        'wind_speed': 0,
+        'generation_pv': 0,
+        'load_demand': 0,
+        'temp_slab_max': 1e3,
+        'temp_slab_min': 0,
+        'temp_wall_max': 1e3,
+        'temp_wall_min': 0,
+        'grid_co2_intensity': 0,
+    }
+
     # Default inputs
-    if not 'wind_speed' in df.columns:
-        df.loc[:, 'wind_speed'] = 0
-    df.loc[:, 'generation_pv'] = 0
-    df.loc[:, 'load_demand'] = 0
-    df.loc[:, 'temp_slab_max'] = 1e3
-    df.loc[:, 'temp_slab_min'] = 0
-    df.loc[:, 'temp_wall_max'] = 1e3
-    df.loc[:, 'temp_wall_min'] = 0
-    df.loc[:, 'grid_co2_intensity'] = 0
+    for k, v in df_col_map.items():
+        if not k in df.columns:
+            df[k] = v
 
     # Add External inputs (if any)
     for c in ext_df:
