@@ -129,28 +129,31 @@ def config_from_dict(config):
     parameter['radiance']['paths']['rad_bsdf'] = filestruct['resources']
     parameter['radiance']['paths']['rad_mtx'] = filestruct['matrices']
 
-    # Update building parameters based on its age
+    # Update building construction based on its age
+    rc_param = {
+        'Ci': 492790.0,
+        'Cs': 3765860.0,
+        'Ris': 0.023649,
+        'Row1': 0.003045,
+        'Rw1w2': 0.144256,
+        'Rw2i': 0.000257
+    }
+    area_ratio = config['room_width'] * config['room_depth'] / 150
+    facade_ratio = config['room_width'] * config['room_height'] / 90
     if config['building_age'] == 'new_constr':
-        parameter['zone']['param']['Ci'] = 492790.1315
-        parameter['zone']['param']['Cs'] = 3765860.312
-        parameter['zone']['param']['Ris'] = 0.02364937286
-        parameter['zone']['param']['Row1'] = 0.003045420646
-        parameter['zone']['param']['Rw1w2'] = 0.1442566037
-        parameter['zone']['param']['Rw2i'] = 0.0002577364781
-    elif config['building_age'] == 'post-1980':
-        parameter['zone']['param']['Ci'] = 492790.1315
-        parameter['zone']['param']['Cs'] = 3765860.312
-        parameter['zone']['param']['Ris'] = 0.02364937286
-        parameter['zone']['param']['Row1'] = 0.003045420646
-        parameter['zone']['param']['Rw1w2'] = 0.1442566037
-        parameter['zone']['param']['Rw2i'] = 0.0002577364781
-    elif config['building_age'] == 'pre-1980':
-        parameter['zone']['param']['Ci'] = 492790.1315
-        parameter['zone']['param']['Cs'] = 3765860.312
-        parameter['zone']['param']['Ris'] = 0.02364937286
-        parameter['zone']['param']['Row1'] = 0.003045420646
-        parameter['zone']['param']['Rw1w2'] = 0.1442566037
-        parameter['zone']['param']['Rw2i'] = 0.0002577364781
+        parameter['zone']['param']['Ci'] = rc_param['Ci'] * area_ratio
+        parameter['zone']['param']['Cs'] = rc_param['Cs'] * area_ratio / 2
+        parameter['zone']['param']['Ris'] = rc_param['Ris'] / area_ratio
+        parameter['zone']['param']['Row1'] = rc_param['Row1'] / facade_ratio
+        parameter['zone']['param']['Rw1w2'] = rc_param['Rw1w2'] / facade_ratio
+        parameter['zone']['param']['Rw2i'] = rc_param['Rw2i'] / facade_ratio
+    elif config['building_age'] in ['post-1980', 'pre-1980']:
+        parameter['zone']['param']['Ci'] = rc_param['Ci'] * area_ratio
+        parameter['zone']['param']['Cs'] = rc_param['Cs'] * area_ratio / 4
+        parameter['zone']['param']['Ris'] = rc_param['Ris'] / area_ratio
+        parameter['zone']['param']['Row1'] = rc_param['Row1'] / facade_ratio / 2
+        parameter['zone']['param']['Rw1w2'] = rc_param['Rw1w2'] / facade_ratio / 2
+        parameter['zone']['param']['Rw2i'] = rc_param['Rw2i'] / facade_ratio / 2
     else:
         raise ValueError(f'Building age {config["building_age"]} not defined.')
 
