@@ -35,7 +35,7 @@ def control_model(inputs, parameter):
 
     inputs = inputs.copy(deep=True)
     if isinstance(inputs.index[0], type(pd.to_datetime(0))):
-        inputs.index = inputs.index.astype(int)/1e9 # Convert datetime to UNIX
+        inputs.index = inputs.index.astype('int64').astype(int)/1e9 # Convert datetime to UNIX
 
     model.fzones = Set(initialize=parameter['facade']['windows'], doc='window zones')
     model.fstates = Set(initialize=parameter['facade']['states'], doc='facade states')
