@@ -1,8 +1,10 @@
 import os
 import sys
+import numpy as np
 import pandas as pd
 import tempfile as tf
 import subprocess as sp
+from pvlib import solarposition, irradiance
 
 root = os.path.dirname(os.path.realpath(__file__))
 
@@ -49,47 +51,38 @@ class Sage3zone(object):
         dni = weather_forecast['weaHDirNor'].values[0]
         dhi = weather_forecast['weaHDifHor'].values[0]
         if dni + dhi > 1:
-            mo = ts.month
-            da = ts.day
-            hrs = ts.hour + ts.minute/60
-            cmd = f'gendaylit {mo} {da} {hrs} -a {self.lat} -o {self.lon} -m {self.tz} -W {dni} {dhi}'
-            cmd += f" | xform -rz {self.config['orient']}"
-            res = sp.run(cmd, shell=True, check=True, stderr=sp.PIPE, stdout=sp.PIPE)
-            if res.stderr:
-                if not 'Warning: sun altitude below zero at time step' in res.stderr.decode():
-                    print('WARNING: rpict:', res.stderr.decode())
-            res = res.stdout.decode()
-            line2 = res.splitlines()[3].split()
-            alt, azi = map(float, line2[-2:])
-            with tf.TemporaryDirectory() as td:
-                grndpath = os.path.join(td, 'ground.rad')
-                with open(grndpath, 'w') as wtr:
-                    wtr.write('void plastic asphalt 0 0 5 .2 .2 .2 0 0\n')
-                    wtr.write('asphalt polygon grnd 0 0 12 -5 -5 0 -5 5 0 5 5 0 5 -5 0\n')
-                    wtr.write('asphalt polygon wall 0 0 12 -5 0 0 5 0 0 5 0 3 -5 0 3\n')
-                skypath = os.path.join(td, 'sky.rad')
-                with open(skypath, 'w') as wtr:
-                    wtr.write(res)
-                    wtr.write('skyfunc glow skyglow 0 0 4 1 1 1 0\n')
-                    wtr.write('skyglow source sky 0 0 4 0 0 1 180\n')
-                    wtr.write('skyglow source ground 0 0 4 0 0 -1 180\n')
-                octpath = os.path.join(td, 'sky.oct')
-                sp.run(f'oconv {grndpath} {skypath} > {octpath}', shell=True, check=True)
-                cmd = f"echo 0 0 3 0 -1 0 | rtrace -w -h -I+ -ab 1 -ad 262144 {octpath} "
-                cmd += "| rcalc -e '$1=$1*47.4+$2*119.9+$3*11.6'"
-                res = sp.run(cmd, shell=True, check=True, stdout=sp.PIPE).stdout.decode()
-            inci = float(res)
-        
+            # solar position
+            tz = int(self.tz / 15)
+            weather_forecast.index = weather_forecast.index.tz_localize(f'Etc/GMT{tz:+d}')
+            pos = solarposition.get_solarposition(weather_forecast.index, self.lat, -1*self.lon)
+            alt = pos['elevation']
+            azi = pos['azimuth'] - 180
             # CHECK ME
             if self.config['orient'] <= 205:
-                azi_shift = azi+90 if azi > -90 else azi+450
+                azi_shift = azi.apply(lambda x: x+90 if x > -90 else x+450)
             else:
                 azi_shift = azi+450
-            
-            return alt, azi_shift, inci, azi
+
+            # incident illuminance
+            face_tilt = 90
+            face_azimuth = self.config['orient'] + 180
+            solar_elevation = pos['elevation']
+            solar_zenith = 90 - solar_elevation
+            solar_azimuth = pos['azimuth']
+            dni = weather_forecast['weaHDirNor']
+            dhi = weather_forecast['weaHDifHor']
+            ghi = dni * np.cos(np.radians(90 - alt)) + dhi
+            total_irrad = irradiance.get_total_irradiance(face_tilt,
+                                                          face_azimuth,
+                                                          solar_zenith,
+                                                          solar_azimuth,
+                                                          dni, ghi, dhi,
+                                                          dni_extra=1361,
+                                                          model='perez')
+            inci = total_irrad['poa_global'] * 110
+            return alt.values[0], azi_shift.values[0], inci.values[0], azi.values[0]
         else:
             return 0, 0, 0, 0
-    
 
     def do_step(self, ts, ctrl_input={}):
         # Parse inputs
