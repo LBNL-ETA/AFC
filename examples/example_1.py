@@ -19,6 +19,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 # Improts from the AFC package
 from afc.ctrlWrapper import Controller, make_inputs
 from afc.utility.weather import read_tmy3
+from afc.utility.weather import example_weather_forecast
 from afc.radiance.configs import get_config
 from afc.defaultConfig import default_parameter
 from afc.utility.plotting import plot_standard1
@@ -33,21 +34,14 @@ def example1():
 
     # read weather (forecast) data
     # this would normally come from a weather forecast module
-    weather_path = os.path.join(os.path.dirname(root), 'dev', 'resources', 'weather', 
-        'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv')
-    weather, info = read_tmy3(weather_path, coerce_year=2023)
-    #weather = weather.resample('5min').interpolate()
-    st = dtm.datetime(2023, 7, 1)
-    wf = weather.loc[st:st+pd.DateOffset(hours=24),]
-    df = wf[['temp_air','dni','dhi','wind_speed']].copy()
-    df = df[df.index.date == df.index[0].date()]
+    wf = example_weather_forecast(date='2023-07-01')
 
     # Initialize controller
     ctrl = Controller()
 
     # Make inputs
     parameter = default_parameter()
-    inputs = make_inputs(parameter, df)
+    inputs = make_inputs(parameter, wf)
 
     # Query controller
     log = ctrl.do_step(inputs=inputs) # run controller

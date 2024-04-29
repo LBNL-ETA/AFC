@@ -59,19 +59,13 @@ The parameters that are specific to AFC include the following entries:
 - `zone`: Configuration of each control zone within the building.
 
 #### 1.2 Define Data (Time-series) Inputs
-The optimization also needs additional data (time series) inputs to indicate the values for time-variable model inputs (such as weather data, occupancy, internal loads, etc.). Depending on the specific application of AFC, these are typically either provided by forecast models or building operators. The AFC package provides example data to represent weather forecasts for San Francisco, CA.
+The optimization also needs additional data (time series) inputs to indicate the values for time-variable model inputs (such as weather data, occupancy, internal loads, etc.). Depending on the specific application of AFC, these are typically either provided by forecast models or building operators. The AFC package provides example data to represent weather forecasts for San Francisco, CA, as well as a function to read it.
 
 ```python
+from afc.utility.weather import read_tmy3
+from afc.utility.weather import example_weather_forecast
 # read the weather file
-weather_path = 
-        'dev/resources/weather/USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv'
-weather, info = read_tmy3(weather_path)
-# define start time
-    start_time = dtm.datetime(2023, 7, 1)
-# select weather forecast for 24 hours ahead
-    wf = weather.loc[start_time:start_time+pd.DateOffset(hours=24),].iloc[:-1]
-# select weather data needed for AFC
-    wf = wf[['temp_air','dhi','dhi','wind_speed']].copy()
+wf = example_weather_forecast(date='2023-07-01')
 ```
 
 The time-series input must be in the form of a pandas dataframe, indexed by timestamp, and contain the following weather forecast columns for the given location:

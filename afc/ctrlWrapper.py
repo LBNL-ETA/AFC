@@ -461,19 +461,13 @@ if __name__ == '__main__':
     root = os.getcwd()
 
     from afc.utility.weather import read_tmy3
+    from afc.utility.weather import example_weather_forecast
     # from afc.radiance.configs import get_config
     from afc.defaultConfig import default_parameter
     from afc.utility.plotting import plot_standard1
 
     # read weather (forecast) data
-    weather_path = os.path.join(os.path.dirname(root), 'dev', 'resources', 'weather',
-        'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv')
-    weather, info = read_tmy3(weather_path, coerce_year=2023)
-    weather = weather.resample('5min').interpolate()
-    st = dtm.datetime(2023, 7, 1)
-    wf = weather.loc[st:st+pd.DateOffset(hours=24),]
-    wf = wf[['temp_air','dni','dhi','wind_speed']+['ghi']].copy()
-    wf = wf[wf.index.date == wf.index[0].date()]
+    wf = example_weather_forecast(date='2023-07-01')
 
     # Initialize controller
     ctrl = Controller()
