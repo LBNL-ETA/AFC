@@ -90,6 +90,7 @@ def config_from_dict(config):
                                   window_height=config['window_height'],
                                   window_sill=config['window_sill'],
                                   window_width=window_full_width,
+                                  window_count=1, # converted to one window_full_width
                                   system_cooling_eff=1/config['system_cooling_eff'],
                                   location_latitude=config['location_latitude'],
                                   location_longitude=config['location_longitude'],

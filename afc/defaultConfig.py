@@ -206,7 +206,7 @@ def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4,
 def default_parameter(tariff_name='e19-2020', hvac_control=True,
                       facade_type='ec-71t', room_height=11,
                       room_width=10, room_depth=15, window_count=2,
-                      window_height=8.0, window_sill=0.5, window_width=4.5,
+                      window_height=7, window_sill=0.5, window_width=4.5,
                       lighting_efficiency=0.24, system_cooling_eff=1/3.5,
                       system_heating_eff=0.95,
                       zone_type='single_office', weight_actuation=0,
@@ -218,7 +218,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                       debug=False):
     """Function to load the default parameters for AFC."""
 
-    window_area = ft2_to_m2((window_height-window_sill) * window_width * window_count)
+    window_area = ft2_to_m2(window_height * window_width * window_count)
     facade_area = ft2_to_m2(room_width * room_height)
     zone_area = ft2_to_m2(room_width * room_depth)
     wwr = window_area / facade_area
