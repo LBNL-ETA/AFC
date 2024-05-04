@@ -486,4 +486,3 @@ if __name__ == '__main__':
         plot_standard1(pd.concat([wf, df], axis=1).ffill().iloc[:-1])
     except:
         pass
-

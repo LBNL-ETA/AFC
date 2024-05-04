@@ -133,7 +133,7 @@ def example_weather_forecast(date=None, horizon=24):
     """Reads weather forecast CSV"""
     if not date:
         # select today's date
-        start_time = dt.datetime.now().date() 
+        start_time = dt.datetime.now().date()
     else:
         start_time = pd.to_datetime(date)
     # read weather (forecast) data
