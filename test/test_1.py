@@ -31,13 +31,14 @@ def test1():
 
     # read weather (forecast) data
     wf = example_weather_forecast(date='2023-07-01')
+    df = wf[wf.index.date == wf.index[0].date()]
 
     # Initialize controller
     ctrl = Controller()
 
     # Make inputs
     parameter = default_parameter()
-    inputs = make_inputs(parameter, wf)
+    inputs = make_inputs(parameter, df)
 
     # Query controller
     ctrl.do_step(inputs=inputs)

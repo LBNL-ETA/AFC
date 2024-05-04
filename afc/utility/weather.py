@@ -130,19 +130,19 @@ if __name__ == '__main__':
 
 
 def example_weather_forecast(date=None, horizon=24):
+    """Reads weather forecast CSV"""
     if not date:
         # select today's date
         start_time = dt.datetime.now().date() 
     else:
         start_time = pd.to_datetime(date)
-    
     # read weather (forecast) data
     weather_path = os.path.join(os.path.dirname(root), 'resources', 'weather',
         'USA_CA_San.Francisco.Intl.AP.724940_TMY3.csv')
-    weather, info = read_tmy3(weather_path, coerce_year=start_time.year)
+    weather = read_tmy3(weather_path, coerce_year=start_time.year) [0]
     weather = weather.resample('5min').interpolate()
-    
     # output data
     wf = weather.loc[start_time:start_time+pd.DateOffset(hours=horizon),]
     wf = wf[['temp_air','dni','dhi','wind_speed']+['ghi']].copy()
     return wf
+    

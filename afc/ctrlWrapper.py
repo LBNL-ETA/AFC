@@ -456,11 +456,9 @@ def make_inputs(parameter, df, ext_df=pd.DataFrame(), return_json=True):
     return inputs
 
 if __name__ == '__main__':
-    import datetime as dtm
 
     root = os.getcwd()
 
-    from afc.utility.weather import read_tmy3
     from afc.utility.weather import example_weather_forecast
     # from afc.radiance.configs import get_config
     from afc.defaultConfig import default_parameter
@@ -488,3 +486,4 @@ if __name__ == '__main__':
         plot_standard1(pd.concat([wf, df], axis=1).ffill().iloc[:-1])
     except:
         pass
+
