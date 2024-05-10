@@ -466,6 +466,7 @@ if __name__ == '__main__':
 
     # read weather (forecast) data
     wf = example_weather_forecast(date='2023-07-01')
+    df = wf[wf.index.date == wf.index[0].date()]
 
     # Initialize controller
     ctrl = Controller()
@@ -474,7 +475,7 @@ if __name__ == '__main__':
     print('All Input variables:', ctrl.get_model_variables())
 
     parameter = default_parameter()
-    inputs = make_inputs(parameter, wf)
+    inputs = make_inputs(parameter, df)
 
     # Query controller
     print('Log-message:\n', ctrl.do_step(inputs=inputs))

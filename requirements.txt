@@ -2,5 +2,7 @@ pandas
 numpy
 pvlib
 fmlc
+timezonefinder
+pytz
 frads>=1.2.3
 doper @ git+https://github.com/LBNL-ETA/DOPER

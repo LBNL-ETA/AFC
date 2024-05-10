@@ -16,6 +16,7 @@ import warnings
 
 from afc.defaultConfig import default_parameter, ft_to_m
 from afc.radiance.configs import get_config
+from afc.utility.location import get_timezone, get_elevation
 
 try:
     root = os.path.dirname(os.path.abspath(__file__))
@@ -104,9 +105,15 @@ def config_from_dict(config):
                                   glare_max=glare_max,
                                   instance_id=config['system_id'],
                                   debug=config['debug'],
-                                  #timezone=timezone,
-                                  #elevation=elevation,
-                                 )
+                                  timezone = get_timezone(
+                                      config['location_latitude'],
+                                      config['location_longitude']
+                                  ),
+                                  elevation = get_elevation(
+                                      config['location_latitude'],
+                                      config['location_longitude']
+                                  )
+                                )
 
     # Update windows position and dimensions
     for wz in parameter['facade']['windows']:
