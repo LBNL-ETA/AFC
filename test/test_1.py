@@ -46,7 +46,7 @@ def test1():
 
     # check
     res = ctrl.get_output(keys=['opt-stats', 'duration'])
-    assert 19.5 < res['opt-stats']['objective'] < 20.5
-    assert res['opt-stats']['duration'] < 5
+    assert 20.0 < res['opt-stats']['objective'] < 20.5
+    assert res['opt-stats']['duration'] < 1
     assert res['opt-stats']['termination'] == 'optimal'
     assert res['duration']['all'] < 60*5

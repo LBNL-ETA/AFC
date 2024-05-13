@@ -7,33 +7,35 @@
 Location handling module.
 """
 
-from datetime import datetime
+# pylint: disable=redefined-outer-name, invalid-name
+
 import json
-from timezonefinder import TimezoneFinder
+from datetime import datetime
 import pytz
 import requests
+from timezonefinder import TimezoneFinder
 
-def get_timezone(latitude, longitude):
-    """Utility function to obtain the timezine from latitude and longitude
+def get_timezone(lat, lon):
+    """Utility function to obtain the timezone from latitude and longitude.
     """
-    # We set the date to the 1st January and not now as the off set may vary along the year
+    # Select period during standard time
     year = datetime.now().year
     date_time = datetime(year, 1, 1)
 
     # Find the timezone based on the given coordinates
     tf = TimezoneFinder()
-    timezone_name = tf.timezone_at(lat=latitude, lng=longitude)
-    # Get the timezone object using pytz
+    timezone_name = tf.timezone_at(lat=lat, lng=lon)
+    # Convert to pytz
     timezone = pytz.timezone(timezone_name)
 
-    # Determine the offset from UTC/GMT
+    # Determine the time offset from UTC/GMT
     offset_seconds = timezone.utcoffset(date_time).total_seconds()
-    offset_hours = offset_seconds / 3600  # Convert to hours
+    offset_hours = offset_seconds / (60*60)  # Convert to hours
 
-    return int(abs(offset_hours)*15)
+    return offset_hours
 
 def get_elevation(lat, lon):
-    """Utility function to obtain the elevation of a place from latitude and longitude
+    """Utility function to obtain the surface elevation from latitude and longitude.
     """
     # Request the elevation on open elevation
     response = requests.post(
@@ -47,3 +49,9 @@ def get_elevation(lat, lon):
     # Convert from json
     elevation = json.loads(response.content)["results"][0]["elevation"]
     return elevation
+
+if __name__ == '__main__':
+    lat = 37.87
+    lon = -122.27
+    print(f'Timezone (should be -8 hours): {get_timezone(lat, lon)}')
+    print(f'Elevation (should be 52 meter): {get_elevation(lat, lon)}')

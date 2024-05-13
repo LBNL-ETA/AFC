@@ -81,6 +81,12 @@ def config_from_dict(config):
     # Update occupant wpi prefernces (80%=>250lx 100%=>350lx 120%=>450lx.)
     wpi_min = 250 + max(0, (config['occupant_brightness'] - 80) * 5)
 
+    # Get timezone and elevation
+    lat = config['location_latitude']
+    lon = config['location_longitude']
+    timezone = int(get_timezone(lat, lon) * -1 * 15) # tz spans 15 deg of longitude
+    #elevation = get_elevation(lat, lon) # experiemntal; in m need to convert to ft
+
     # Upload default_parameter with arguments from json
     window_full_width = config['window_width'] * config['window_count']
     parameter = default_parameter(tariff_name=config['tariff_name'],
@@ -105,14 +111,8 @@ def config_from_dict(config):
                                   glare_max=glare_max,
                                   instance_id=config['system_id'],
                                   debug=config['debug'],
-                                  timezone = get_timezone(
-                                      config['location_latitude'],
-                                      config['location_longitude']
-                                  ),
-                                  elevation = get_elevation(
-                                      config['location_latitude'],
-                                      config['location_longitude']
-                                  )
+                                  timezone=timezone,
+                                  elevation=config['location_elevation'],
                                 )
 
     # Update windows position and dimensions
