@@ -8,7 +8,7 @@ Configuration parser.
 """
 
 # pylint: disable=invalid-name, bare-except, too-many-statements
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals, unused-import
 
 import os
 import json
