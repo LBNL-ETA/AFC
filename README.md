@@ -1,9 +1,9 @@
-# Advanced Fenestration Control (AFC)
+# Advanced Facade Controller (AFC)
 
 ![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/Syntax/badge.svg)
 ![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/UnitTests/badge.svg)
 
-#### Predictive Control Solution for Advanced Fenestration and Integrated Energy Systems
+#### Predictive Control Solution for Advanced Facades and Integrated Energy Systems
 ----------------------------------------------------------------------------------------
 
 ![afc_logo.jpg](docs/afc_logo.jpg)
@@ -14,7 +14,7 @@ This publicly available control package was developed to allow easy access to in
 
 A general overview of integrated dynamic facade and smart building controls can be found in the [Smart Buildings Breakthrough Technology](https://windows.lbl.gov/news/smart-buildings-breakthrough) news article.
 
-The Advanced Fenestration Controller (AFC) is designed to minimize electricity cost and/or emissions in buildings through the control of dynamic facades (for example electrochromic windows, blinds, and shades), and lighting and HVAC systems. The AFC also considers a variety of control parameters such as visual and thermal comfort (glare, daylight, view, health, and wellness). It uses weather forecasts, and a set of measurements (room and floor temperature) to optimize control setpoints over a specified time horizon of typically 24 hours. The functionality illustrated below:
+The Advanced Facade Controller (AFC) is designed to minimize electricity cost and/or emissions in buildings through the control of dynamic facades (for example electrochromic windows, blinds, and shades), and lighting and HVAC systems. The AFC also considers a variety of control parameters such as visual and thermal comfort (glare, daylight, view, health, and wellness). It uses weather forecasts, and a set of measurements (room and floor temperature) to optimize control setpoints over a specified time horizon of typically 24 hours. The functionality illustrated below:
 
 ![system_documentation.png](docs/system_documentation.png)
 
