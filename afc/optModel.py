@@ -8,7 +8,7 @@ Optimization model.
 """
 
 # pylint: disable=bare-except, too-many-locals, invalid-name, too-many-statements
-# pylint: disable=pointless-string-statement
+# pylint: disable=pointless-string-statement, possibly-used-before-assignment
 
 import os
 import sys

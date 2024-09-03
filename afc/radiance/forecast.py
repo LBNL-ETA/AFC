@@ -365,6 +365,7 @@ class Forecast:
             wpi = wpi_all
         else:
             print(f'ERROR: wpi_loc "{self.wpi_loc}" not available.')
+            wpi = None
 
         return wpi, wpi_all, wpi_center, wpi_23
 

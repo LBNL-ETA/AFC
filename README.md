@@ -1,7 +1,7 @@
 # Advanced Facade Controller (AFC)
 
-![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/Syntax/badge.svg)
-![Actions Status](https://github.com/LBNL-ETA/AFC/workflows/UnitTests/badge.svg)
+[![Syntax](https://github.com/LBNL-ETA/AFC/actions/workflows/syntax-test.yml/badge.svg)](https://github.com/LBNL-ETA/AFC/actions/workflows/syntax-test.yml)
+[![UnitTests](https://github.com/LBNL-ETA/AFC/actions/workflows/unit-test.yml/badge.svg)](https://github.com/LBNL-ETA/AFC/actions/workflows/unit-test.yml)
 
 #### Predictive Control Solution for Advanced Facades and Integrated Energy Systems
 ----------------------------------------------------------------------------------------
