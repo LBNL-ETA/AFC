@@ -597,19 +597,16 @@ class Forecast:
 
         return output_df
 
-
-if __name__ == "__main__":
-
-    import warnings
-    warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+def test(wwr=0.4,            # [0.4, 0.6]
+         mode='dshade',      # ['dshade', 'shade', 'blinds', 'ec']
+         facade_type='shade' # ['shade', 'blinds', 'ec']
+    ):
+    """test funciton for radiance"""
 
     from .configs import get_config
     root = os.path.dirname(os.path.abspath(__file__))
 
     # configuration
-    wwr = 0.4 # [0.4, 0.6]
-    mode = 'dshade' # ['dshade', 'shade', 'blinds', 'ec']
-    facade_type = 'shade' # ['shade', 'blinds', 'ec']
     print('Running example for:', wwr, mode, facade_type)
     filestruct, config_path = get_config(mode, wwr)
 
@@ -654,4 +651,12 @@ if __name__ == "__main__":
     #    print(k, v)
     print(res)
     print(res['wpi_0_6'])
+    return res
+
+if __name__ == "__main__":
+
+    import warnings
+    warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+
+    res = test()
     res.to_csv('radiance-forecast_new.csv')

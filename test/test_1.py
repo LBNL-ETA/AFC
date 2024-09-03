@@ -41,7 +41,7 @@ def test1():
     inputs = make_inputs(parameter, df)
 
     # Query controller
-    ctrl.do_step(inputs=inputs)
+    print(ctrl.do_step(inputs=inputs))
     df = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
 
     # check
