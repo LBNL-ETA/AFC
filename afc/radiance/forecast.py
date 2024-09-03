@@ -10,6 +10,7 @@ Radiance forecasting module.
 # pylint: disable=too-many-locals, too-many-instance-attributes, too-many-arguments
 # pylint: disable=redefined-outer-name, invalid-name, too-many-statements
 # pylint: disable=consider-using-dict-items, protected-access, pointless-string-statement
+# pylint: disable=import-outside-toplevel
 
 import os
 import time
@@ -604,7 +605,7 @@ def test(wwr=0.4,            # [0.4, 0.6]
     """test funciton for radiance"""
 
     from .configs import get_config
-    root = os.path.dirname(os.path.abspath(__file__))
+    #root = os.path.dirname(os.path.abspath(__file__))
 
     # configuration
     print('Running example for:', wwr, mode, facade_type)
@@ -621,7 +622,7 @@ def test(wwr=0.4,            # [0.4, 0.6]
         wpi_loc="23back"
     )
 
-    for i in range(3):
+    for _ in range(3):
         #df = pd.DataFrame([[800, 80], [750, 100], [100, 10]],
         #                       index=pd.DatetimeIndex([
         #                           pd.datetime(2019, 12, 21, 12, 0),
@@ -630,7 +631,7 @@ def test(wwr=0.4,            # [0.4, 0.6]
         #                       ]))
         df = pd.DataFrame(index=pd.date_range('2020-01-01 00:00',
                                               '2020-01-02 00:00',
-                                              freq='5T'))
+                                              freq='5min'))
         np.random.seed(1)
         df['dni'] = np.random.uniform(0, 1000, len(df))
         np.random.seed(1)
@@ -650,7 +651,7 @@ def test(wwr=0.4,            # [0.4, 0.6]
     #for k,v in forecaster.new_map.items():
     #    print(k, v)
     print(res)
-    print(res['wpi_0_6'])
+    print(res['wpi_0_5'])
     return res
 
 if __name__ == "__main__":
