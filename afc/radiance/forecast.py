@@ -203,7 +203,7 @@ class Forecast:
             wpd=windows,
         )
         self.sensor_grid = utils.gen_grid(
-            self.theroom.floor.base.flip(), self.grid_height, self.grid_spacing
+            self.theroom.floor.base, self.grid_height, self.grid_spacing
         )
 
     def get_workflow(self):

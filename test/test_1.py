@@ -24,6 +24,40 @@ with warnings.catch_warnings():
     from afc.defaultConfig import default_parameter
     from afc.utility.plotting import plot_standard1
 
+def compare_dataframes(df1, df2, tolerance=5):
+    """
+    Compare two pandas DataFrames to check if they are within a specified percentage of tolerance.
+
+    Parameters:
+    df1 (pd.DataFrame): The first DataFrame.
+    df2 (pd.DataFrame): The second DataFrame.
+    tolerance (float): The percentage of tolerance.
+
+    Returns:
+    bool: True if the DataFrames are within the specified tolerance, False otherwise.
+    """
+    if df1.shape != df2.shape:
+        return False
+
+    for col in df1.columns:
+        if col not in df2.columns:
+            return False
+
+        for idx in df1.index:
+            val1 = df1.at[idx, col]
+            val2 = df2.at[idx, col]
+
+            if np.isnan(val1) and np.isnan(val2):
+                continue
+
+            if np.isnan(val1) or np.isnan(val2):
+                return False
+
+            if not np.isclose(val1, val2, rtol=tolerance / 100):
+                return False
+
+    return True
+
 def test1():
     """
     This is test1 to test the AFC functionality.
@@ -42,11 +76,21 @@ def test1():
 
     # Query controller
     print(ctrl.do_step(inputs=inputs))
-    df = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
+    df_res = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
 
-    # check
+    # check overall
     res = ctrl.get_output(keys=['opt-stats', 'duration'])
     assert 20.0 < res['opt-stats']['objective'] < 20.5
     assert res['opt-stats']['duration'] < 1
     assert res['opt-stats']['termination'] == 'optimal'
-    assert res['duration']['all'] < 60*5
+    assert res['duration']['all'] < 60*2
+
+    # Compute frads/Radiance
+    rad = ctrl.forecaster.compute2(df[['dni','dhi']])
+    #rad.to_csv('frads_base.csv')
+
+    # check radiance
+    base = pd.read_csv(os.path.join(root, 'frads_base.csv'), index_col=0)
+    if not compare_dataframes(base, rad, tolerance=5):
+        rad.to_csv(os.path.join('frads.csv'))
+    assert compare_dataframes(base, rad, tolerance=5)
