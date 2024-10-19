@@ -10,7 +10,7 @@ Radiance forecasting module.
 # pylint: disable=too-many-locals, too-many-instance-attributes, too-many-arguments
 # pylint: disable=redefined-outer-name, invalid-name, too-many-statements
 # pylint: disable=consider-using-dict-items, protected-access, pointless-string-statement
-# pylint: disable=import-outside-toplevel
+# pylint: disable=import-outside-toplevel, too-many-positional-arguments
 
 import os
 import time

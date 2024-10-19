@@ -27,6 +27,7 @@ i = Current time (Not just an index)
 """
 
 # pylint: disable=invalid-name, too-many-arguments, too-many-locals, too-many-statements
+# pylint: disable=too-many-positional-arguments
 
 def R1C1(i, Ti_p, To, Qi_ext, param):
     """Function for RC model considering indoor, outdoor conditions.

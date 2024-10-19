@@ -7,7 +7,7 @@
 Plotting module.
 """
 
-# pylint: disable=invalid-name, too-many-arguments
+# pylint: disable=invalid-name, too-many-arguments, too-many-positional-arguments
 
 import matplotlib.pyplot as plt
 # from matplotlib.pyplot import cm

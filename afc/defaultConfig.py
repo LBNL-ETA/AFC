@@ -7,7 +7,7 @@
 Default configuration.
 """
 
-# pylint: disable=too-many-arguments, bare-except, too-many-locals
+# pylint: disable=too-many-arguments, bare-except, too-many-locals, too-many-positional-arguments
 # pylint: disable=invalid-name, dangerous-default-value, unused-argument
 
 import os

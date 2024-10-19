@@ -7,7 +7,7 @@
 Thermostat control module.
 """
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments, too-many-positional-arguments
 
 def afc_to_hvac_setpoint(ctrl_outputs, tdead=0.5):
     """Utility to convert from AFC to thermostat setpoints."""
