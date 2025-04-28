@@ -66,6 +66,8 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
         parameter['facade']['windows'] = [0, 1, 2]
         parameter['facade']['states'] = [0, 1, 2, 3]
         parameter['facade']['fstate_initial'] = [3, 3, 3] # Initial state of facade
+    elif isinstance(facade_type, dict):
+        parameter['facade'].update(facade_type)
     else:
         raise ValueError(f'The facade type "{facade_type}" is not available.')
 
@@ -73,12 +75,13 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
 
 def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, longitude=122.2,
                         view_orient=0, timezone=120, orient=0, elevation=100, width=3.05,
-                        depth=4.57, height=3.35,
-                        windows=['.38 .22 2.29 .85', '.38 1.07 2.29 .85', '.38 1.98 2.29 .51']):
+                        depth=4.57, height=3.35, n_windows=3, window_height=2,
+                        window_width=2.5, window_sill=0.5):
     """Default configuration for radiance.
     
     Default window parameters for 71T.
     Viewing from outside, facing the south wall, the lower left corner of the wall is (0, 0, 0)
+    windows=['.38 .22 2.29 .85', '.38 1.07 2.29 .85', '.38 1.98 2.29 .51']
     window1 = .38 .22 2.29 .85
         is 0.38m from the left edge, 0.22 meter from the ground, 2.29 in width, and 0.85 in height.
     Similarly, "view1 = 1.525 1 1.22 0 -1 0"
@@ -106,12 +109,15 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
     parameter['radiance']['dimensions']['width'] = width
     parameter['radiance']['dimensions']['depth'] = depth
     parameter['radiance']['dimensions']['height'] = height
-    if len(windows) == len(parameter['facade']['windows']):
-        for wz, window in enumerate(windows):
-            parameter['radiance']['dimensions'][f'window{wz+1}'] = window
-    else:
-        raise ValueError(f'Number of window zones {parameter["facade"]["windows"]} does'\
-        'not match window dimensions {windows}.')
+
+    # make windows
+    w_center = (width - window_width) / 2 # equal distance
+    w_height = (height - window_height) / n_windows # equal height
+    w_sill = window_sill
+    for wz in range(n_windows):
+        window = ' '.join([str(x) for x in [w_center, w_sill, window_width, w_height]])
+        parameter['radiance']['dimensions'][f'window{wz+1}'] = window
+        w_sill += w_height
 
     # paths
     filestruct, rad_config = get_config(parameter['facade']['type'],
@@ -204,23 +210,23 @@ def get_occupant_config(parameter, schedule=None, wpi_min=500, glare_max=0.4,
     return parameter
 
 def default_parameter(tariff_name='e19-2020', hvac_control=True,
-                      facade_type='ec-71t', room_height=11,
-                      room_width=10, room_depth=15, window_count=2,
-                      window_height=7, window_sill=0.5, window_width=4.5,
+                      facade_type='ec-71t', room_height=ft_to_m(11),
+                      room_width=ft_to_m(10), room_depth=ft_to_m(15), window_count=2,
+                      window_height=ft_to_m(7), window_sill=ft_to_m(0.5), window_width=ft_to_m(4.5),
                       lighting_efficiency=0.24, system_cooling_eff=1/3.5,
                       system_heating_eff=0.95,
                       zone_type='single_office', weight_actuation=0,
                       weight_glare=0, precompute_radiance=False,
                       location_latitude=37.85, location_longitude=-122.24,
                       location_orientation=0, view_orient=0,
-                      timezone=120, elevation=170, number_occupants=1,
+                      timezone=120, elevation=ft_to_m(170), number_occupants=1,
                       schedule=None, wpi_min=500, glare_max=0.4, instance_id=0,
                       debug=False):
     """Function to load the default parameters for AFC."""
 
-    window_area = ft2_to_m2(window_height * window_width * window_count)
-    facade_area = ft2_to_m2(room_width * room_height)
-    zone_area = ft2_to_m2(room_width * room_depth)
+    window_area = window_height * window_width * window_count
+    facade_area = room_width * room_height
+    zone_area = room_width * room_depth
     wwr = window_area / facade_area
 
     # initialize with defaults for optimization
@@ -251,16 +257,14 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                                     view_orient = view_orient,
                                     timezone = timezone,
                                     orient = location_orientation,
-                                    elevation = ft_to_m(elevation),
-                                    width = ft_to_m(room_width),
-                                    depth = ft_to_m(room_depth),
-                                    height = ft_to_m(room_height),
-                                    windows=[
-                                        '.38 .22 2.29 .85',
-                                        '.38 1.07 2.29 .85',
-                                        '.38 1.98 2.29 .51'
-                                    ]
-                                )
+                                    elevation = elevation,
+                                    width = room_width,
+                                    depth = room_depth,
+                                    height = room_height,
+                                    n_windows = len(parameter['facade']['windows']),
+                                    window_height = window_height,
+                                    window_width = window_width,
+                                    window_sill = window_sill)
 
     # setup occupant
     parameter = get_occupant_config(parameter,

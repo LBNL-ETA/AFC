@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import frads
 from frads import room, utils, matrix, methods
 
-from .maps import shade_map_0x6, shade_map_0x4
+from afc.radiance.maps import shade_map_0x6, shade_map_0x4
 
 root = os.path.dirname(os.path.realpath(__file__))
 
@@ -604,7 +604,7 @@ def test(wwr=0.4,            # [0.4, 0.6]
     ):
     """test funciton for radiance"""
 
-    from .configs import get_config
+    from afc.radiance.configs import get_config
     #root = os.path.dirname(os.path.abspath(__file__))
 
     # configuration

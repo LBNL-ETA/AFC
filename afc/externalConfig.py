@@ -85,7 +85,6 @@ def config_from_dict(config):
     lat = config['location_latitude']
     lon = config['location_longitude']
     timezone = int(get_timezone(lat, lon) * -1 * 15) # tz spans 15 deg of longitude
-    #elevation = get_elevation(lat, lon) # experiemntal; in m need to convert to ft
 
     # Upload default_parameter with arguments from json
     window_full_width = config['window_width'] * config['window_count']
