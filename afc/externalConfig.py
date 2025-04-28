@@ -69,9 +69,11 @@ def config_from_dict(config):
         heating_efficiency = 1.0
 
     if config['system_light']=='FLU':
-        lighting_efficiency = 0.5
+        lighting_efficiency = 0.05
     elif config['system_light']=='LED':
-        lighting_efficiency = 0.25
+        lighting_efficiency = 0.02
+    elif isinstance(config['system_light'], float):
+        lighting_efficiency = float(config['system_light'])
     else:
         raise ValueError(f'Ligthing system {config["system_light"]} not defined.')
 

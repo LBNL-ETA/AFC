@@ -137,7 +137,7 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     parameter['zone'] = {}
 
     # Setup
-    parameter['zone']['lighting_efficiency'] = lighting_efficiency # W/lx
+    parameter['zone']['lighting_efficiency'] = lighting_efficiency*zone_area # W/lx/m2
     parameter['zone']['heating_efficiency'] = system_heating_eff
     parameter['zone']['cooling_efficiency'] = system_cooling_eff
     parameter['zone']['heat_max'] = [200*zone_area, 200*zone_area, 200*zone_area] # 200 W_th/m2
@@ -213,7 +213,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                       facade_type='ec-71t', room_height=ft_to_m(11),
                       room_width=ft_to_m(10), room_depth=ft_to_m(15), window_count=2,
                       window_height=ft_to_m(7), window_sill=ft_to_m(0.5), window_width=ft_to_m(4.5),
-                      lighting_efficiency=0.24, system_cooling_eff=1/3.5,
+                      lighting_efficiency=0.017, system_cooling_eff=1/3.5,
                       system_heating_eff=0.95,
                       zone_type='single_office', weight_actuation=0,
                       weight_glare=0, precompute_radiance=False,

@@ -80,7 +80,7 @@ def test1():
 
     # check overall
     res = ctrl.get_output(keys=['opt-stats', 'duration'])
-    assert 20.0 < res['opt-stats']['objective'] < 20.5
+    assert 22.0 < res['opt-stats']['objective'] < 22.5
     assert res['opt-stats']['duration'] < 1
     assert res['opt-stats']['termination'] == 'optimal'
     assert res['duration']['all'] < 60*2
