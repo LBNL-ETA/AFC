@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import frads
-from frads import room, utils, matrix, methods
+from frads import room, matrix, methods, geom
 
 from afc.radiance.maps import shade_map_0x6, shade_map_0x4
 
@@ -202,7 +202,7 @@ class Forecast:
             swall_thickness=float(self.dims["facade_thickness"]),
             wpd=windows,
         )
-        self.sensor_grid = utils.gen_grid(
+        self.sensor_grid = geom.gen_grid(
             self.theroom.floor.base, self.grid_height, self.grid_spacing
         )
 
