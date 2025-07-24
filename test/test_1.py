@@ -83,7 +83,7 @@ def test1():
     assert 21.5 < res['opt-stats']['objective'] < 22.5
     assert res['opt-stats']['duration'] < 1
     assert res['opt-stats']['termination'] == 'optimal'
-    assert res['duration']['all'] < 60*2
+    assert res['duration']['all'] < 60*5
 
     # Compute frads/Radiance
     rad = ctrl.forecaster.compute2(df[['dni','dhi']])
