@@ -15,6 +15,7 @@ Main controller wrapper module.
 import io
 import os
 import sys
+import copy
 import time
 import json
 import logging
@@ -69,6 +70,7 @@ class Controller(eFMU):
         self.standard_report = None
         self.resample_variable_ts = None
         self.forecaster = None
+        self.forecaster_class = None
         self.compute_periods = None
         self.get_tariff = None
         self.make_view_config = None
@@ -78,6 +80,7 @@ class Controller(eFMU):
         self.tariff = None
         self.controller = None
         self.glare_handler = None
+        self.glare_ctrl_cols = None
         self.data = None
         self.res = None
         self.parameter = None
@@ -117,10 +120,10 @@ class Controller(eFMU):
         # Glare logic
         #sys.path.append(os.path.join(self.input['paths']['emulator'], 'controller'))
         from afc.glare.view_angle import make_view_config, view_config_from_rad
-        from afc.glare.sage3zone import Sage3zone
+        from afc.glare.heur_glare import MultiZone
         self.make_view_config = make_view_config
         self.view_config_from_rad = view_config_from_rad
-        self.glare_handler_class = Sage3zone
+        self.glare_handler_class = MultiZone
 
     def log_results(self):
         """Function to log results."""
@@ -156,6 +159,8 @@ class Controller(eFMU):
 
             # Setup controller
             if self.init:
+
+                # DOPER controller
                 self.init_functions()
                 from afc.optModel import control_model#, pyomo_to_pandas
                 if self.parameter['wrapper']['solver_dir']:
@@ -174,21 +179,46 @@ class Controller(eFMU):
                                              solver_path=solver_path,
                                              pyomo_logger=pyomo_logger,
                                              output_list=output_list)
+
+                # Radiance forecaster
                 rad_paths = self.parameter['radiance']['paths']
                 filestruct = {}
-                filestruct['resources'] = rad_paths['rad_bsdf']
+                filestruct['glazing_systems'] = rad_paths['rad_systems']
                 filestruct['matrices'] = rad_paths['rad_mtx']
+                reflectances = self.parameter['radiance']['reflectances']
                 self.forecaster = \
                     self.forecaster.Forecast(rad_paths['rad_config'],
                                              regenerate=self.parameter['radiance']['regenerate'],
                                              location=self.parameter['radiance']['location'],
                                              facade_type=self.parameter['facade']['type'],
                                              wpi_loc=self.parameter['radiance']['wpi_loc'],
+                                             view_config=self.parameter['radiance']['view'],
                                              filestruct=filestruct,
-                                             dimensions=self.parameter['radiance']['dimensions'])
+                                             dimensions=self.parameter['radiance']['dimensions'],
+                                             wpi_all=self.parameter['radiance']['wpi_all'],
+                                             wpi_config=self.parameter['radiance']['wpi_config'],
+                                             reflectances=reflectances)
+
+                # Glare controller
+                rad_config = {'Dimensions': self.parameter['radiance']['dimensions'],
+                              'View': {'views': self.forecaster.view}}
+                view_config = self.view_config_from_rad(rad_config,
+                                                        start_lx=20e3, end_lx=12.5e3)
+                glare_config = copy.deepcopy(self.parameter['radiance']['location'])
+                glare_config.update(self.parameter['radiance']['view'])
+                self.glare_handler = \
+                    self.glare_handler_class(config=glare_config,
+                                             view_config=view_config,
+                                             tvis=self.parameter['facade']['tvis'])
+
+                # Precompute (simulation)
                 if self.parameter['wrapper']['precompute_radiance']:
+
+                    # Weather forecast
                     wf_all = pd.DataFrame().from_dict(self.input['wf-all'])
                     wf_all.index = pd.to_datetime(wf_all.index, unit='ms')
+
+                    # Radiance forecaster
                     temp = pd.DataFrame()
                     for d in sorted(np.unique(wf_all.index.date)):
                         if temp.empty:
@@ -197,23 +227,18 @@ class Controller(eFMU):
                         else:
                             temp = pd.concat([temp, self.forecaster.compute2( \
                                 wf_all[['dni','dhi']][wf_all.index.date == d])])
+                    self.forecaster_class = self.forecaster
                     self.forecaster = temp
 
-                # Glare handler
-                view_config = self.view_config_from_rad(rad_paths['rad_config'],
-                                                        start_lx=20e3, end_lx=12.5e3)
-                self.glare_handler = \
-                    self.glare_handler_class(config=self.parameter['radiance']['location'],
-                                             view_config=view_config)
-                if self.parameter['wrapper']['precompute_radiance']:
+                    # Glare handler
                     wf = wf_all[['dni','dhi']].copy(deep=True).rename(columns=map_weather)
                     for ix in wf.index:
-                        wf.loc[ix, ['alt', 'azi_shift', 'inci', 'azi']] = \
-                            self.glare_handler.get_solar(ix, wf.loc[ix:ix])
-                        gmodes = self.glare_handler.glare_mode_many( \
-                            *wf.loc[ix, ['alt', 'azi_shift', 'inci']].values)
-                        for i, g in enumerate(gmodes):
+                        glare_ctrl = self.glare_handler.do_step(ix, {'weather_data': wf})
+                        for i, g in enumerate(self.glare_handler.gmodes):
                             wf.loc[ix, f'zone{i}_gmode'] = int(g)
+                        self.glare_ctrl_cols = \
+                            [f'glare_ctrl_{i}' for i in range(len(glare_ctrl[0]))]
+                        wf.loc[ix, self.glare_ctrl_cols] = glare_ctrl[0]
                     self.glare_handler = wf
 
             # Compute radiance
@@ -228,7 +253,7 @@ class Controller(eFMU):
             rad_cutoff = self.parameter['facade']['rad_cutoff']
             for k in rad_cutoff.keys():
                 for c in data.columns:
-                    if k in c:
+                    if f'{k}_' in c:
                         data.loc[:,c] = data[c].mask(data[c] < rad_cutoff[k][0], 0)
                         data.loc[:,c] = data[c].mask(data[c] > rad_cutoff[k][1], rad_cutoff[k][1])
             self.output['duration']['radiance'] = time.time() - st1
@@ -240,12 +265,11 @@ class Controller(eFMU):
             else:
                 wf = inputs[['dni','dhi']].copy(deep=True).rename(columns=map_weather)
                 for ix in wf.index:
-                    wf.loc[ix, ['alt', 'azi_shift', 'inci', 'azi']] = \
-                        self.glare_handler.get_solar(ix, wf.loc[ix:ix])
-                    gmodes = self.glare_handler.glare_mode_many( \
-                        *wf.loc[ix, ['alt', 'azi_shift', 'inci']].values)
-                    for i, g in enumerate(gmodes):
+                    glare_ctrl = self.glare_handler.do_step(ix, {'weather_data': wf})
+                    for i, g in enumerate(self.glare_handler.gmodes):
                         wf.loc[ix, f'zone{i}_gmode'] = int(g)
+                    self.glare_ctrl_cols = [f'glare_ctrl_{i}' for i in range(len(glare_ctrl[0]))]
+                    wf.loc[ix, self.glare_ctrl_cols] = glare_ctrl[0]
 
             zones = self.parameter['facade']['windows']
             states = self.parameter['facade']['states']
@@ -261,7 +285,7 @@ class Controller(eFMU):
                     if not wf_key in wf.columns:
                         wf_key = f'zone{t-1 if flip_z else nz-1}_gmode'
                     gmodes.append(wf.loc[wf.index[0], wf_key])
-                    data[f'ev_{nz}_{t}'] =  data[f'ev_{nz}_{t}'].mask( \
+                    data[f'ev_{nz}_{t}'] = data[f'ev_{nz}_{t}'].mask( \
                         (wf[wf_key] > 0) & (data[f'wpi_{nz}_{t}']>0), 2e4)
             self.output['duration']['glare'] = time.time() - st1
 
@@ -292,6 +316,12 @@ class Controller(eFMU):
             # Variable timestep
             st1 = time.time()
             if self.parameter['wrapper']['resample_variable_ts']:
+
+                # remove string columns
+                string_cols = data.columns[data.apply(lambda x: x.dtype == 'object').values]
+                if len(string_cols) > 0:
+                    self.msg += f'WARNING: Removing string columns: {string_cols}'
+                    data = data.drop(columns=string_cols)
 
                 # check columns
                 cols = self.parameter['wrapper']['cols_fill']
@@ -373,17 +403,26 @@ class Controller(eFMU):
                 df, cool_set, heat_set, self.output['valid'], True, False
             )
             self.output['ctrl-thermostat'] = thermostat
-            if objective:
+            if self.output['valid']:
                 self.output['ctrl-troom'] = float(df['Temperature 0 [C]'].values[1])
             else:
                 self.output['ctrl-troom'] = None
 
             # Compute shade state
-            if objective:
+            if self.output['valid']:
+                # apply mpc setpoint
                 uShade = df[[f'Facade State {z}' for \
                     z in self.parameter['facade']['windows']]].iloc[0].values
-                #uShade = df[['Tint Bottom [-]', 'Tint Middle [-]', 'Tint Top [-]']].iloc[0].values
                 self.output['ctrl-facade'] = [round(float(u),1) for u in uShade]
+            elif self.parameter['wrapper']['use_fallback']:
+                # use heuristic control
+                ix = wf.index[0]
+                uShade = [round(float(u),1) for u in wf.loc[ix, self.glare_ctrl_cols]]
+                self.output['ctrl-facade'] = uShade
+            else:
+                # hold previous value
+                # self.output['ctrl-facade'] = None
+                pass
 
             df = df.astype(float).fillna(-1)
             self.output['output-data'] = df.to_json()

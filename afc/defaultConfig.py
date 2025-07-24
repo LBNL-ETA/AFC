@@ -64,8 +64,9 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
     if facade_type == 'ec-71t':
         parameter['facade']['type'] = 'ec'
         parameter['facade']['windows'] = [0, 1, 2]
-        parameter['facade']['states'] = [0, 1, 2, 3]
+        parameter['facade']['states'] = [0, 1, 2, 3] # dark to bright
         parameter['facade']['fstate_initial'] = [3, 3, 3] # Initial state of facade
+        parameter['facade']['tvis'] = [0.01, 0.06, 0.18, 0.6] # dark to bright
     elif isinstance(facade_type, dict):
         parameter['facade'].update(facade_type)
     else:
@@ -74,9 +75,9 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
     return parameter
 
 def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, longitude=122.2,
-                        view_orient=0, timezone=120, orient=0, elevation=100, width=3.05,
-                        depth=4.57, height=3.35, n_windows=3, window_height=2,
-                        window_width=2.5, window_sill=0.5):
+                        view_orient='s', timezone=120, orient=0, elevation=100, width=3.05,
+                        depth=4.57, height=3.35, n_windows=3, window_height=2, view_dist=1.22,
+                        window_width=2.5, window_sill=0.5, facade_thickness=0.0005):
     """Default configuration for radiance.
     
     Default window parameters for 71T.
@@ -94,25 +95,32 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
     parameter['radiance']['regenerate'] = regenerate
     parameter['radiance']['wwr'] = round(wwr, 1)
     parameter['radiance']['wpi_loc'] = '23back'
+    parameter['radiance']['wpi_all'] = False
+    parameter['radiance']['wpi_config'] = {'grid_height': 0.76, 'grid_spacing': 0.3}
+    parameter['radiance']['reflectances'] = {'floor': 0.2, 'walls': 0.5, 'ceiling': 0.7}
     # location
     parameter['radiance']['location'] = {}
     parameter['radiance']['location']['latitude'] = latitude
     if longitude < 0:
         print('WARNING: Longitude for Radiance must be positive for the western hemisphere.')
     parameter['radiance']['location']['longitude'] = longitude
-    parameter['radiance']['location']['view_orient'] = view_orient
     parameter['radiance']['location']['timezone'] = timezone
     parameter['radiance']['location']['orient'] = orient
     parameter['radiance']['location']['elevation'] = elevation
+    # view
+    parameter['radiance']['view'] = {}
+    parameter['radiance']['view']['view_orient'] = view_orient
+    parameter['radiance']['view']['view_dist'] = view_dist
     # dimensions
     parameter['radiance']['dimensions'] = {}
     parameter['radiance']['dimensions']['width'] = width
     parameter['radiance']['dimensions']['depth'] = depth
     parameter['radiance']['dimensions']['height'] = height
+    parameter['radiance']['dimensions']['facade_thickness'] = facade_thickness
 
     # make windows
     w_center = (width - window_width) / 2 # equal distance
-    w_height = (height - window_height) / n_windows # equal height
+    w_height = window_height / n_windows # equal height
     w_sill = window_sill
     for wz in range(n_windows):
         window = ' '.join([str(x) for x in [w_center, w_sill, window_width, w_height]])
@@ -125,7 +133,7 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
                                         root=os.path.join(root, 'resources', 'radiance'))
     parameter['radiance']['paths'] = {}
     parameter['radiance']['paths']['rad_config'] = rad_config
-    parameter['radiance']['paths']['rad_bsdf'] = filestruct['resources']
+    parameter['radiance']['paths']['rad_systems'] = filestruct['glazing_systems']
     parameter['radiance']['paths']['rad_mtx'] = filestruct['matrices']
 
     return parameter
@@ -214,11 +222,11 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                       room_width=ft_to_m(10), room_depth=ft_to_m(15), window_count=2,
                       window_height=ft_to_m(7), window_sill=ft_to_m(0.5), window_width=ft_to_m(4.5),
                       lighting_efficiency=0.017, system_cooling_eff=1/3.5,
-                      system_heating_eff=0.95,
+                      system_heating_eff=0.95, facade_thickness=0.0005,
                       zone_type='single_office', weight_actuation=0,
                       weight_glare=0, precompute_radiance=False,
                       location_latitude=37.85, location_longitude=-122.24,
-                      location_orientation=0, view_orient=0,
+                      location_orientation=0, view_orient='s', view_dist=1.22,
                       timezone=120, elevation=ft_to_m(170), number_occupants=1,
                       schedule=None, wpi_min=500, glare_max=0.4, instance_id=0,
                       debug=False):
@@ -255,6 +263,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                                     latitude = location_latitude,
                                     longitude = -1*location_longitude,
                                     view_orient = view_orient,
+                                    view_dist = view_dist,
                                     timezone = timezone,
                                     orient = location_orientation,
                                     elevation = elevation,
@@ -264,7 +273,8 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
                                     n_windows = len(parameter['facade']['windows']),
                                     window_height = window_height,
                                     window_width = window_width,
-                                    window_sill = window_sill)
+                                    window_sill = window_sill,
+                                    facade_thickness = facade_thickness)
 
     # setup occupant
     parameter = get_occupant_config(parameter,
@@ -317,6 +327,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     parameter['wrapper']['output_list'] = output_list
     parameter['wrapper']['tariff_name'] = tariff_name
     parameter['wrapper']['compute_loads'] = False
+    parameter['wrapper']['use_fallback'] = True
 
     return parameter
 

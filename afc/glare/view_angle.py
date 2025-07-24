@@ -1,7 +1,22 @@
+# Advanced Fenestration Controller (AFC) Copyright (c) 2023, The
+# Regents of the University of California, through Lawrence Berkeley
+# National Laboratory (subject to receipt of any required approvals
+# from the U.S. Dept. of Energy). All rights reserved.
+
+"""
+Advanced Fenestration Controller
+Glare handler module.
+"""
+
+# pylint: disable=too-many-arguments, too-many-positional-arguments, too-many-locals
+# pylint: disable=protected-access, unused-variable, pointless-string-statement
+# pylint: disable=unnecessary-list-index-lookup, redefined-outer-name
+
 import math
 from configparser import ConfigParser
 
-def sun_in_view(view_dist, view_height, window_bottom_height, window_top_height, window_width, get_angle=False):
+def sun_in_view(view_dist, view_height, window_bottom_height, window_top_height,
+                window_width, get_angle=False):
     """
     Assumption: view facing the window with window horizontally centered in view.
     dist: view distance to the window
@@ -32,20 +47,24 @@ def sun_in_view(view_dist, view_height, window_bottom_height, window_top_height,
         right_azi = 90 + view_window_angle
     if get_angle:
         return bot_alt, top_alt, left_azi, right_azi, view_window_angle
-    else:
-        return bot_alt, top_alt, left_azi, right_azi
-        
-def view_config_from_rad(cfg_path, start_lx=18e3, end_lx=11e3, fov_offset=2.5):
+    return bot_alt, top_alt, left_azi, right_azi
+
+def view_config_from_rad(cfg_path, start_lx=18e3, end_lx=11e3, fov_offset=2.5, elevation=0):
+    """auto-generate view config from Radiance config."""
     # Load Radiance config
-    _config = ConfigParser()
-    if _config.read(cfg_path) == []:
-        raise ValueError('The location of the "config" file is wrong. ' + \
-            'Check location at {}.'.format(cfg_path))
-    cfg = _config._sections
-    
+    if isinstance(cfg_path, str):
+        _config = ConfigParser()
+        if not _config.read(cfg_path):
+            raise ValueError('The location of the "config" file is wrong. ' + \
+                f'Check location at {cfg_path}.')
+        cfg = _config._sections
+    else:
+        cfg = cfg_path # dict
+
     # Parse parameters
     window_bottom_heights = []
     window_top_heights = []
+    window_width = 0
     for k,v in cfg['Dimensions'].items():
         if 'window' in k:
             window_bottom_heights.append(float(v.split(' ')[1]))
@@ -54,21 +73,29 @@ def view_config_from_rad(cfg_path, start_lx=18e3, end_lx=11e3, fov_offset=2.5):
     view_name = 'views' if 'views' in cfg['View'] else 'view1'
     view_dist = float(cfg['View'][view_name].split(' ')[1])
     view_height = float(cfg['View'][view_name].split(' ')[2])
-    
+
     # Make config
     view_config = {}
-    for i in range(len(window_bottom_heights)):
-        bot_alt, top_alt, left_azi, right_azi, view_window_angle = sun_in_view(view_dist, view_height, window_bottom_heights[i], window_top_heights[i], window_width, get_angle=True)
+    for i, _ in enumerate(window_bottom_heights):
+        bot_alt, top_alt, left_azi, right_azi, view_window_angle = \
+            sun_in_view(view_dist,
+                        view_height+elevation,
+                        window_bottom_heights[i]+elevation,
+                        window_top_heights[i]+elevation,
+                        window_width,
+                        get_angle=True)
         view_config[f'window{i}_start_alt'] = round(bot_alt, 2)
         view_config[f'window{i}_end_alt'] = round(top_alt, 2)
         view_config['azi_fov'] = round(view_window_angle + fov_offset, 2)
-        
+
     view_config['start_lx'] = start_lx
     view_config['end_lx'] = end_lx
-        
+
     return view_config
-    
-def make_view_config(view_dist, view_height, wwr, window_width=2.71, start_lx=18e3, end_lx=11e3, fov_offset=2.5):
+
+def make_view_config(view_dist, view_height, wwr, window_width=2.71,
+                     start_lx=18e3, end_lx=11e3, fov_offset=2.5):
+    """make view config."""
     window_height_labels = ['bot', 'mid', 'top']
     # Those are for 71T emulator model
     if wwr == 0.6:
@@ -76,21 +103,27 @@ def make_view_config(view_dist, view_height, wwr, window_width=2.71, start_lx=18
         window_bottom_heights = [0.13, 0.99, 1.86]
     elif wwr == 0.4:
         window_top_heights = [1.57, 2.14, 2.73]
-        window_bottom_heights = [1.0, 1.57, 2.16]    
-    
+        window_bottom_heights = [1.0, 1.57, 2.16]
+    else:
+        raise ValueError(f'The wwr of {wwr} is not available.')
+
     view_config = {}
-    for i in range(len(window_height_labels)):
-        bot_alt, top_alt, left_azi, right_azi, view_window_angle = sun_in_view(view_dist, view_height, window_bottom_heights[i],
-                                                                               window_top_heights[i], window_width, get_angle=True)
+    for i, _ in enumerate(window_height_labels):
+        view_res = sun_in_view(view_dist,
+                               view_height,
+                               window_bottom_heights[i],
+                               window_top_heights[i],
+                               window_width,
+                               get_angle=True)
+        bot_alt, top_alt, left_azi, right_azi, view_window_angle = view_res
         view_config[f'{window_height_labels[i]}_start_alt'] = round(bot_alt, 2)
         view_config[f'{window_height_labels[i]}_end_alt'] = round(top_alt, 2)
         view_config['azi_fov'] = round(view_window_angle + fov_offset, 2)
-        
+
     view_config['start_lx'] = start_lx
     view_config['end_lx'] = end_lx
-        
-    return view_config
 
+    return view_config
 
 if __name__ == "__main__":
     '''
@@ -103,7 +136,8 @@ if __name__ == "__main__":
     print("WWR60 top pane")
     window_bottom_height = 1.86
     window_top_height = 2.72
-    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height, window_bottom_height, window_top_height, window_width)
+    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height,
+    window_bottom_height, window_top_height, window_width)
     print("Bottom altitude: ", bot_alt)
     print("Top altitude: ", top_alt)
     print("Left azimuth: ", left_azi)
@@ -113,7 +147,8 @@ if __name__ == "__main__":
     print("WWR60 mid pane")
     window_bottom_height = 0.99
     window_top_height = 1.85
-    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height, window_bottom_height, window_top_height, window_width)
+    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height,
+    window_bottom_height, window_top_height, window_width)
     print("Bottom altitude: ", bot_alt)
     print("Top altitude: ", top_alt)
     print("Left azimuth: ", left_azi)
@@ -123,7 +158,8 @@ if __name__ == "__main__":
     print("WWR60 bot pane")
     window_bottom_height = .13
     window_top_height = .99
-    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height, window_bottom_height, window_top_height, window_width)
+    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height,
+    window_bottom_height, window_top_height, window_width)
     print("Bottom altitude: ", bot_alt)
     print("Top altitude: ", top_alt)
     print("Left azimuth: ", left_azi)
@@ -133,7 +169,8 @@ if __name__ == "__main__":
     print("WWR40 top pane")
     window_bottom_height = 2.16
     window_top_height = 2.73
-    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height, window_bottom_height, window_top_height, window_width)
+    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height,
+    window_bottom_height, window_top_height, window_width)
     print("Bottom altitude: ", bot_alt)
     print("Top altitude: ", top_alt)
     print("Left azimuth: ", left_azi)
@@ -143,7 +180,8 @@ if __name__ == "__main__":
     print("WWR40 mid pane")
     window_bottom_height = 1.57
     window_top_height = 2.14
-    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height, window_bottom_height, window_top_height, window_width)
+    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height,
+    window_bottom_height, window_top_height, window_width)
     print("Bottom altitude: ", bot_alt)
     print("Top altitude: ", top_alt)
     print("Left azimuth: ", left_azi)
@@ -153,16 +191,13 @@ if __name__ == "__main__":
     print("WWR40 bot pane")
     window_bottom_height = 1.0
     window_top_height = 1.57
-    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height, window_bottom_height, window_top_height, window_width)
+    bot_alt, top_alt, left_azi, right_azi = sun_in_view(view_dist, view_height,
+    window_bottom_height, window_top_height, window_width)
     print("Bottom altitude: ", bot_alt)
     print("Top altitude: ", top_alt)
     print("Left azimuth: ", left_azi)
     print("Right azimuth: ", right_azi)
     print("==============================")
     '''
-    cfg_path = r'C:\Users\Christoph\Documents\PrivateRepos\DynamicFacades\emulator\resources\radiance\room0.4WWR_ec.cfg'
-    view_config = view_config_from_rad(cfg_path)
+    view_config = view_config_from_rad('resources\radiance\room0.4WWR_ec.cfg')
     print(view_config)
-
-
-

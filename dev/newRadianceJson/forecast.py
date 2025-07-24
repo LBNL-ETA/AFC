@@ -11,26 +11,25 @@ Radiance forecasting module.
 # pylint: disable=too-many-locals, too-many-instance-attributes, too-many-arguments
 # pylint: disable=redefined-outer-name, invalid-name, too-many-statements
 # pylint: disable=consider-using-dict-items, protected-access, pointless-string-statement
-# pylint: disable=import-outside-toplevel, too-many-positional-arguments, too-many-branches
-# pylint: disable=dangerous-default-value, consider-using-generator, unused-variable
+# pylint: disable=import-outside-toplevel, too-many-positional-arguments
 
 import os
 import time
 import json
-#import multiprocessing as mp
+
+# import multiprocessing as mp
 from configparser import ConfigParser
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import sys
 import frads as fr
-from frads import room, matrix, methods, geom
-from frads.methods import MatrixConfig
-import pyradiance as pr
+from frads import room, matrix, methods, geom, window
 
-from afc.radiance.maps import shade_map_0x6, shade_map_0x4
-from afc.radiance.constants import KFOMG, OMEGAS
-from afc.radiance.utility import create_trapezoid_mask
+from maps import shade_map_0x6, shade_map_0x4
+from frads_constants import KFOMG, OMEGAS
 
 root = os.path.dirname(os.path.realpath(__file__))
 
@@ -52,15 +51,11 @@ class Forecast:
         facade_type="ec",
         wpi_plot=False,
         wpi_loc="23back",
-        wpi_all=False,
-        wpi_config={'grid_height': 0.76, 'grid_spacing': 0.3},
         view_config={'view_dist': 1.22, 'view_orient': 's'},
         location=None,
         filestruct=None,
         _test_difference=False,
         dimensions=None,
-        render=False,
-        reflectances={'floor': 0.2, 'walls': 0.5, 'ceiling': 0.7},
     ):
         self.root = os.path.dirname(os.path.abspath(__file__))
         self.parse_config(cfg_path)
@@ -80,25 +75,17 @@ class Forecast:
             # delete windows
             for k in [k for k in self.dims if k.startswith('window')]:
                 del self.dims[k]
-            # add new config
+            # add new config            
             self.dims.update(dimensions)
         self.facade_type = facade_type
         self.wpi_plot = wpi_plot
         self.wpi_loc = wpi_loc
-        self.wpi_all = wpi_all
-        self.wpi_config = wpi_config
         self.view_config = view_config
         self._test_difference = _test_difference
-        self.render = render
-        self.reflectances = reflectances
-
-        # make wpi grid config
-        self.grid_height = float(self.wpi_config['grid_height'])
-        self.grid_spacing = float(self.wpi_config['grid_spacing'])
-
+        
         # make view
         self.make_view()
-
+        
         # init
         self.glazing_system_paths = sorted(
             [
@@ -126,7 +113,6 @@ class Forecast:
         self.wpi_data = None
         self.map_center = None
         self.map_23 = None
-        self.map_trap = None
         self.n_w = None
         self.n_d = None
         self.date_time = None
@@ -160,7 +146,7 @@ class Forecast:
         self.view = cfg["View"]["view1"]
         self.grid_height = float(cfg["Grid"]["height"])
         self.grid_spacing = float(cfg["Grid"]["spacing"])
-
+        
     def make_view(self, height=1.22):
         '''Funciton to make a view'''
 
@@ -188,12 +174,6 @@ class Forecast:
             swall_thickness=float(self.dims["facade_thickness"]),
             wpd=windows,
         )
-
-        # reflectances
-        self.theroom.materials[0].fargs = [self.reflectances['floor']]*3 + [0, 0] # floor
-        self.theroom.materials[1].fargs = [self.reflectances['walls']]*3 + [0, 0] # walls
-        self.theroom.materials[2].fargs = [self.reflectances['ceiling']]*3 + [0, 0] # ceiling
-
         self.sensor_grid = geom.gen_grid(
             self.theroom.floor.base, self.grid_height, self.grid_spacing
         )
@@ -204,19 +184,9 @@ class Forecast:
         model = self.theroom.model_dump()
         model["sensors"] = {
             "wpi": {"data": self.sensor_grid},
-            #"view": {"data": [_view]},
+            "view": {"data": [_view]},
         }
-
-        # add view
-        view = pr.create_default_view()
-        view.vp = tuple([float(x) for x in _view[0:3]])
-        view.vdir = tuple([float(x) for x in _view[3:6]])
-        view.type = "a"
-        view.horiz = 180
-        view.vert = 180
-        model["views"] = {"view": {"view": view}}
-
-        # complete settings
+        model["views"] = {}
         settings = {
             "method": 3,
             "latitude": self.lat,
@@ -225,19 +195,16 @@ class Forecast:
             "site_elevation": self.elevation,
             "save_matrices": True,
             "matrix_dir": self.matricesd,
-            #"sensor_window_matrix": self.vmx_opt.split(),
-            #"daylight_matrix": self.dmx_opt.split(),
-            #"surface_window_matrix": self.vsmx_opt.split(),
-            "daylight_matrix": ['-ab', '2', '-c', '5000'],
-            "sensor_window_matrix": ['-ab', '5', '-ad', '8192', '-lw', '5e-5'],
-            "surface_window_matrix": ['-ab', '5', '-ad', '8192', '-lw', '5e-5', '-c', '10000'],
+            "sensor_window_matrix": self.vmx_opt.split(),
+            "daylight_matrix": self.dmx_opt.split(),
+            "surface_window_matrix": self.vsmx_opt.split(),
             "sky_basis": "r4",
             "name": f"afc_version={AFC_VERSION}, frads_version={FRADS_VERSION}",
         }
-        self.workflow_config = methods.WorkflowConfig.from_dict(
+        workflow_config = methods.WorkflowConfig.from_dict(
             {"model": model, "settings": settings}
         )
-        self.workflow = methods.ThreePhaseMethod(self.workflow_config)
+        self.workflow = methods.ThreePhaseMethod(workflow_config)
 
     def make_matrices(self):
         """Function to make matrices."""
@@ -245,10 +212,11 @@ class Forecast:
             self.workflow.mfile.unlink(missing_ok=True)
         self.workflow.generate_matrices(view_matrices=False)
 
-    def integrate_matrix(self, matrix):
-        """Convert from BSDF to transmission matrix"""
+    def intergrate_matrix(self, matrix):
+        # Convert from BSDF to transmission matrix
         ncol = len(matrix[0])
-        # nrow = len(matrix)
+        nrow = len(matrix)
+        print(ncol, nrow)
         if ncol == 145:
             solid_angles = OMEGAS["kf"]
         elif ncol == 73:
@@ -269,55 +237,28 @@ class Forecast:
             ]
         )
 
-    def convert_mtx_to_frads(self, mtx, integrate=True):
-        """Convert plain mtx array to frads matrix object"""
-        if integrate:
-            return MatrixConfig(matrix_data=self.integrate_matrix(mtx))
-        return MatrixConfig(matrix_data=mtx)
-
     def get_matrices(self):
-        """load the matrices"""
-        if self.render:
-            for gs in self.glazing_systems:
-                visible_name = f"{gs.name}_visible"
-                solar_name = f"{gs.name}_solar"
-                abs1_name = f"{gs.name}_abs1"
-                abs2_name = f"{gs.name}_abs2"
-                visible_mtx = self.convert_mtx_to_frads(gs.visible_back_transmittance)
-                self.workflow.config.model.materials.matrices[visible_name] = visible_mtx
-                solar_mtx = self.convert_mtx_to_frads(gs.solar_back_transmittance)
-                self.workflow.config.model.materials.matrices[solar_name] = solar_mtx
-                abs1_array = np.array(gs.solar_front_absorptance[0]).reshape(1, -1)
-                abs1_mtx = self.convert_mtx_to_frads(abs1_array)
-                self.workflow.config.model.materials.matrices[abs1_name] = abs1_mtx
-                abs2_array = np.array(gs.solar_front_absorptance[1]).reshape(1, -1)
-                abs2_mtx = self.convert_mtx_to_frads(abs2_array)
-                self.workflow.config.model.materials.matrices[abs2_name] = abs2_mtx
-                for window in self.workflow.config.model.windows.values():
-                    window_polygon = geom.parse_polygon(pr.parse_primitive(window.bytes)[0])
-                    _geom = fr.window.get_proxy_geometry(window_polygon, gs)
-                    window.proxy_geometry[visible_name] = b"\n".join(_geom)
-
         self._tvis = [
-            self.integrate_matrix(gs.visible_back_transmittance)
+            self.intergrate_matrix(gs.visible_back_transmittance)
             for gs in self.glazing_systems
         ]
         self._tsol = [
-            self.integrate_matrix(gs.solar_back_transmittance)
+            self.intergrate_matrix(gs.solar_back_transmittance)
             for gs in self.glazing_systems
         ]
         self._abs1 = [
-            self.integrate_matrix(
+            self.intergrate_matrix(
                 np.array(gs.solar_front_absorptance[0]).reshape(1, -1)
             )
             for gs in self.glazing_systems
         ]
         self._abs2 = [
-            self.integrate_matrix(
+            self.intergrate_matrix(
                 np.array(gs.solar_front_absorptance[1]).reshape(1, -1)
             )
             for gs in self.glazing_systems
         ]
+        print("done")
 
     def wpi_map(self, data, center_w, center_d, fov):
         """Function to make wpi map."""
@@ -335,25 +276,10 @@ class Forecast:
         map_center = map_center.replace(0, np.nan)
         return map_center.values
 
-    def wpi_map_trapezoid(self, data, slope):
-        """Function to make wpi map."""
-
-        map_center = data.copy(deep=True)
-        y = map_center.columns
-        x = map_center.index
-        mask = create_trapezoid_mask(x, y,
-                                     p1=(x[0], y[0]), # fixed
-                                     p2=(x[-1], y[0]), # fixed
-                                     p3=(x[-1]-slope+x[0], y[-1]), # compensate for offsets
-                                     p4=(slope, y[-1])) # absolute
-        map_center.loc[:, :] = np.transpose(mask)
-        map_center = map_center.replace(0, np.nan)
-        return map_center.values
-
-    def process_wpi(self, wpi_grid, index=0):
+    def process_wpi(self, wpi_grid):
         """Function to process wpi."""
 
-        if self.init and index == 0:
+        if self.init:
             width = float(self.dims["width"])
             depth = float(self.dims["depth"])
 
@@ -374,22 +300,18 @@ class Forecast:
                 .values
             )
 
-            # room center
+            # Center
             center_w = round(width / 2, 4)
             center_d = round(depth / 2, 4)
             fov = 60  # deg
             self.map_center = self.wpi_map(self.wpi_data, center_w, center_d, fov)
 
-            # 2/3 back
+            # Occupant
             occ_w = round(width / 2, 4)
             # occ_d = 1.525 # Occupant
             occ_d = round(depth / 3 * 2, 4)
             fov = 60  # deg
             self.map_23 = self.wpi_map(self.wpi_data, occ_w, occ_d, fov)
-
-            # trapezoid in back (m on y-axis)
-            slope = float(self.wpi_loc.split('trap')[1]) if self.wpi_loc.startswith('trap') else 1
-            self.map_trap = self.wpi_map_trapezoid(self.wpi_data, slope)
 
             self.n_w = n_w
             self.n_d = n_d
@@ -397,68 +319,67 @@ class Forecast:
         data = pd.DataFrame(wpi_grid.reshape(self.n_w, self.n_d))
         data_center = data * self.map_center
         wpi_23 = data * self.map_23
-        wpi_trap = data * self.map_trap
 
-        if self.wpi_plot and index == 0:
-
-            def plot_wpi(axs, data, title=''):
-                axs.set_title(title)
-                pos = axs.imshow(data, cmap="hot")
-                axs.set_xticks(np.arange(0, self.n_d, 1))
-                axs.set_xticklabels(
-                    [round(self.wpi_data.columns[int(i)], 1) for i in axs.get_xticks()]
-                )
-                axs.set_yticks(np.arange(0, self.n_w, 1))
-                axs.set_yticklabels(
-                    [round(self.wpi_data.index[int(i)], 1) for i in axs.get_yticks()]
-                )
-                fig.colorbar(pos, ax=axs)
-
-            fig, axs = plt.subplots(4, 1, figsize=(6, 12), sharex=False, sharey=False)
-
-            # all avg
+        if self.wpi_plot:
+            fig, axs = plt.subplots(3, 1, figsize=(6, 10), sharex=False, sharey=False)
             tt_avg = round(data.mean().mean(), 1)
-            plot_wpi(axs[0], data.values,
-                     title=f"All WPI sensors (avg={tt_avg})")
+            axs[0].set_title(f"All WPI sensors (avg={tt_avg})")
+            pos = axs[0].imshow(data.values, cmap="hot")
+            axs[0].set_xticks(np.arange(0, self.n_d, 1))
+            axs[0].set_xticklabels(
+                [round(self.wpi_data.columns[int(i)], 1) for i in axs[0].get_xticks()]
+            )
+            axs[0].set_yticks(np.arange(0, self.n_w, 1))
+            axs[0].set_yticklabels(
+                [round(self.wpi_data.index[int(i)], 1) for i in axs[0].get_yticks()]
+            )
+            fig.colorbar(pos, ax=axs[0])
 
-            # cone 60 deg room centered
             tt_avg = round(data_center.mean().mean(), 1)
-            plot_wpi(axs[1], data_center.values,
-                     title=f"Cone view 60 deg room centered (avg={tt_avg})")
+            axs[1].set_title(f"Cone view 60 deg room centered (avg={tt_avg})")
+            pos = axs[1].imshow(data_center.values, cmap="hot")
+            axs[1].set_xticks(np.arange(0, self.n_d, 1))
+            axs[1].set_xticklabels(
+                [round(self.wpi_data.columns[int(i)], 1) for i in axs[1].get_xticks()]
+            )
+            axs[1].set_yticks(np.arange(0, self.n_w, 1))
+            axs[1].set_yticklabels(
+                [round(self.wpi_data.index[int(i)], 1) for i in axs[1].get_yticks()]
+            )
+            fig.colorbar(pos, ax=axs[1])
 
-            # cone 60 deg 2/3 back centered
             tt_avg = round(wpi_23.mean().mean(), 1)
-            plot_wpi(axs[2], wpi_23.values,
-                     title=f"Cone view 60 deg 2/3 back centered (avg={tt_avg})")
-
-            # trapezoid centered
-            tt_avg = round(wpi_trap.mean().mean(), 1)
-            plot_wpi(axs[3], wpi_trap.values,
-                     title=f"Trapezoid centered (avg={tt_avg})")
+            axs[2].set_title(f"Cone view 60 deg occupant centered (avg={tt_avg})")
+            pos = axs[2].imshow(wpi_23.values, cmap="hot")
+            axs[2].set_xticks(np.arange(0, self.n_d, 1))
+            axs[2].set_xticklabels(
+                [round(self.wpi_data.columns[int(i)], 1) for i in axs[2].get_xticks()]
+            )
+            axs[2].set_yticks(np.arange(0, self.n_w, 1))
+            axs[2].set_yticklabels(
+                [round(self.wpi_data.index[int(i)], 1) for i in axs[2].get_yticks()]
+            )
+            fig.colorbar(pos, ax=axs[2])
 
             fig.tight_layout()
             tt_dt = self.date_time.strftime("%Y%m%dT%H%M")
             fig.savefig(f"wpi-plot_{tt_dt}.jpeg")
-            plt.close(fig)
 
-        wpi_avg = data.mean().mean()
+        wpi_all = data.mean().mean()
         wpi_center = data_center.mean().mean()
         wpi_23 = wpi_23.mean().mean()
-        wpi_trap = wpi_trap.mean().mean()
 
         if self.wpi_loc == "23back":
             wpi = wpi_23
         elif self.wpi_loc == "center":
             wpi = wpi_center
-        elif self.wpi_loc == "avg":
-            wpi = wpi_avg
-        elif self.wpi_loc.startswith('trap'):
-            wpi = wpi_trap
+        elif self.wpi_loc == "all":
+            wpi = wpi_all
         else:
             print(f'ERROR: wpi_loc "{self.wpi_loc}" not available.')
             wpi = None
 
-        return wpi, data, [wpi_avg, wpi_center, wpi_23, wpi_trap]
+        return wpi, wpi_all, wpi_center, wpi_23
 
     '''
     def compute(self, weather_df):
@@ -586,43 +507,20 @@ class Forecast:
             time=list(weather_df.index.tolist()),
             dni=weather_df["dni"].tolist(),
             dhi=weather_df["dhi"].tolist(),
-            solar_spectrum=False,
-            orient=self.orient
         )
         _sol = self.workflow.get_sky_matrix(
             time=list(weather_df.index.tolist()),
             dni=weather_df["dni"].tolist(),
             dhi=weather_df["dhi"].tolist(),
             solar_spectrum=True,
-            orient=self.orient
         )
         output_df = pd.DataFrame(index=_df.index)
         flr_area = np.linalg.norm(self.theroom.floor.base.area)
-
-        if self.render:
-            for i, ix in enumerate(weather_df.index):
-                if 10 <= ix.hour <= 18:
-                    wdw_state = list(self.workflow.config.model.materials.matrices.keys())[0]
-                    fc_state = {}
-                    for w in self.workflow.config.model.windows.keys():
-                        fc_state[w] = wdw_state
-                    edgps, ev = self.workflow.calculate_edgps(
-                        'view',
-                        fc_state,
-                        ix,
-                        dni=weather_df.loc[ix, 'dni'],
-                        dhi=weather_df.loc[ix, 'dhi'],
-                        ambient_bounce=1,
-                        save_hdr=f'ctrl_{ix}.hdr',
-                    )
-                    pr.ra_tiff(pr.pcond(f'ctrl_{ix}.hdr', human=True), out=f'ctrl_{ix}.tif')
-
         for idx, window in enumerate(self.theroom.swall.windows):
             _wndw_area = np.linalg.norm(window.polygon.area)
             _window_name = window.primitive.identifier
             for idx_t, _ in enumerate(self.glazing_systems):
                 wpi_col = f"wpi_{idx}_{idx_t}"
-                wpi_all_col = f"wpi-all_{idx}_{idx_t}"
                 ev_col = f"ev_{idx}_{idx_t}"
                 tsol_col = f"tsol_{idx}_{idx_t}"
                 abs1_col = f"abs1_{idx}_{idx_t}"
@@ -635,8 +533,6 @@ class Forecast:
                     _vis,
                     weights=[47.4, 119.9, 11.6],
                 )
-
-                # process ev
                 evres = matrix.matrix_multiply_rgb(
                     self.workflow.sensor_window_matrices["view"].array[idx],
                     self._tvis[idx_t],
@@ -644,22 +540,17 @@ class Forecast:
                     _vis,
                     weights=[47.4, 119.9, 11.6],
                 )
-                output_df[ev_col] = evres[0]
 
-                # process wpi (iterate through horizon)
+                # Process WPI
                 wpi = []
-                wpi_all = []
                 for i, t in enumerate(np.transpose(visres)):
                     self.date_time = weather_df.index[i]
-                    wpi_temp = self.process_wpi(t, index=idx+idx_t+i)
+                    wpi_temp = self.process_wpi(t)
                     wpi.append(wpi_temp[0])
-                    if self.wpi_all:
-                        wpi_all.append(wpi_temp[1].to_json())
                 output_df[wpi_col] = wpi
-                if self.wpi_all:
-                    output_df[wpi_all_col] = wpi_all
-
-                # process solar
+                output_df[ev_col] = evres[0]
+                # check against pre-mtx
+                # abs1 size is wrong
                 abs1 = matrix.matrix_multiply_rgb(
                     self._abs1[idx_t],
                     self.workflow.daylight_matrices[_window_name].array,
@@ -720,7 +611,7 @@ def test(
 ):
     """test funciton for radiance"""
 
-    from afc.radiance.configs import get_config
+    from configs import get_config
 
     # root = os.path.dirname(os.path.abspath(__file__))
 
@@ -736,10 +627,7 @@ def test(
         regenerate=False,
         filestruct=filestruct,
         wpi_plot=False,
-        wpi_all=True,
-        #wpi_loc="trap0.5",
         wpi_loc="23back",
-        render=False,
     )
 
     for _ in range(3):
@@ -775,7 +663,6 @@ def test(
     #    print(k, v)
     print(res)
     # print(res["wpi_0_5"])
-    #print(res['wpi-all_0_0'])
     return res
 
 

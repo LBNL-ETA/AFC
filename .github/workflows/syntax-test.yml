@@ -22,4 +22,4 @@ jobs:
     - name: Analyzing the code with pylint
       run: |
         cd afc
-        pylint $(find . -name "*.py" -not -path "*/glare/*" -not -path "*/interface/*" -not -path "*/interface_old/*")
+        pylint $(find . -name "*.py" -not -path "*/interface/*" -not -path "*/interface_old/*")

@@ -300,6 +300,16 @@ def control_model(inputs, parameter):
                                doc='thermal occupant load in room')
     model.occupancy_light = Param(model.ts, initialize=pandas_to_dict(inputs['occupancy_light']),
                                   doc='occupancy light in room')
+    if not 'cooling_efficiency' in inputs.columns:
+        inputs['cooling_efficiency'] = parameter['zone']['cooling_efficiency']
+    model.cooling_efficiency = Param(model.ts,
+                                     initialize=pandas_to_dict(inputs['cooling_efficiency']),
+                                     doc='variable cooling efficiency')
+    if not 'heating_efficiency' in inputs.columns:
+        inputs['heating_efficiency'] = parameter['zone']['heating_efficiency']
+    model.heating_efficiency = Param(model.ts,
+                                     initialize=pandas_to_dict(inputs['heating_efficiency']),
+                                     doc='variable heating efficiency')
 
     def zone_p(model, ts):
         return model.p[ts] == model.p_lights[ts] \
@@ -317,13 +327,13 @@ def control_model(inputs, parameter):
 
     def zone_p_heat(model, ts):
         return model.p_heating[ts] == sum(model.zone_heat[ts, temps] for temps in model.temps) \
-                                      * parameter['zone']['heating_efficiency']
+                                      * model.heating_efficiency[ts]
     model.constraint_zone_p_heat = Constraint(model.ts, rule=zone_p_heat,
                                               doc='electric power of heating')
 
     def zone_p_cool(model, ts):
         return model.p_cooling[ts] == sum(model.zone_cool[ts, temps] for temps in model.temps) \
-                                      * parameter['zone']['cooling_efficiency']
+                                      * model.cooling_efficiency[ts]
     model.constraint_zone_p_cool = Constraint(model.ts, rule=zone_p_cool,
                                               doc='electric power of cooling')
 
@@ -475,6 +485,8 @@ def afc_output_list():
     ctrlOutputs.append({'data': 'outside_temperature', 'df_label': 'Outside Air Temperature [C]'})
     ctrlOutputs.append({'data': 'p_heating', 'df_label': 'Power Heating [W]'})
     ctrlOutputs.append({'data': 'p_cooling', 'df_label': 'Power Cooling [W]'})
+    ctrlOutputs.append({'data': 'heating_efficiency', 'df_label': 'Heating Efficiency [-]'})
+    ctrlOutputs.append({'data': 'cooling_efficiency', 'df_label': 'Cooling Efficiency [-]'})
     ctrlOutputs.append({'data': 'zone_actuation', 'df_label': 'Actuation [-]'})
     ctrlOutputs.append({'data': 'zone_abs_actuation', 'df_label': 'Actuation Abs [-]'})
     ctrlOutputs.append({'data': 'glare_constraint_max', 'df_label': 'Glare Max [-]'})
@@ -485,6 +497,7 @@ def afc_output_list():
     ctrlOutputs.append({'data': 'zone_occload', 'df_label': 'Power Occupancy [W]'})
     ctrlOutputs.append({'data': 'zone_plugload', 'df_label': 'Power Plugs [W]'})
     ctrlOutputs.append({'data': 'zone_wpi_total', 'df_label': 'Work Plane Illuminance [lx]'})
+    ctrlOutputs.append({'data': 'zone_vil', 'df_label': 'Vertical Illuminance [lx]'})
     ctrlOutputs.append({'data': 'zone_abs1', 'df_label': 'Window Absorption 1 [W]'})
     ctrlOutputs.append({'data': 'zone_abs2', 'df_label': 'Window Absorption 2 [W]'})
     ctrlOutputs.append({'data': 'zone_tsol', 'df_label': 'Window Transmitted Solar [W]'})

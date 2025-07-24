@@ -103,7 +103,8 @@ def config_from_dict(config):
                                   location_latitude=config['location_latitude'],
                                   location_longitude=config['location_longitude'],
                                   location_orientation=int(config['location_orientation']),
-                                  view_orient=int(config['occupant_1_direction']),
+                                  view_orient=config['occupant_1_direction'],
+                                  view_dist=config['occupant_1_distance'],
                                   system_heating_eff=heating_efficiency,
                                   lighting_efficiency=lighting_efficiency,
                                   number_occupants=config['occupant_number'],
@@ -116,26 +117,13 @@ def config_from_dict(config):
                                   elevation=config['location_elevation'],
                                 )
 
-    # Update windows position and dimensions
-    for wz in parameter['facade']['windows']:
-        # all windows have same width
-        window_width = ft_to_m(window_full_width)
-        # all windows have same height
-        window_height = ft_to_m(config['window_height'] / len(parameter['facade']['windows']))
-        # need to make sure windows are centered
-        x_origin = ft_to_m((config['room_width'] - window_full_width) / 2)
-        # new window starts at sill + X*windows
-        y_origin = ft_to_m(config['window_sill']) + wz *  window_height
-        window = f'{x_origin} {y_origin} {window_width} {window_height}'
-        parameter['radiance']['dimensions'][f'window{wz+1}'] = window
-
     # Update radiance paths
     root_rad = os.path.split(parameter['radiance']['paths']['rad_config'])[0]
     filestruct, rad_config = get_config(parameter['facade']['type'],
                                         str(0.6), # need to be fixed to www=0.6
                                         root=root_rad)
     parameter['radiance']['paths']['rad_config'] = rad_config
-    parameter['radiance']['paths']['rad_bsdf'] = filestruct['resources']
+    parameter['radiance']['paths']['rad_systems'] = filestruct['glazing_systems']
     parameter['radiance']['paths']['rad_mtx'] = filestruct['matrices']
 
     # Update building construction based on its age
