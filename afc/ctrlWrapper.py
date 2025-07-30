@@ -185,12 +185,14 @@ class Controller(eFMU):
                 filestruct = {}
                 filestruct['glazing_systems'] = rad_paths['rad_systems']
                 filestruct['matrices'] = rad_paths['rad_mtx']
+                window_ctrl_map = self.parameter['facade']['window_ctrl_map']
                 reflectances = self.parameter['radiance']['reflectances']
                 self.forecaster = \
                     self.forecaster.Forecast(rad_paths['rad_config'],
                                              regenerate=self.parameter['radiance']['regenerate'],
                                              location=self.parameter['radiance']['location'],
                                              facade_type=self.parameter['facade']['type'],
+                                             window_ctrl_map=window_ctrl_map,
                                              wpi_loc=self.parameter['radiance']['wpi_loc'],
                                              view_config=self.parameter['radiance']['view'],
                                              filestruct=filestruct,
@@ -274,13 +276,9 @@ class Controller(eFMU):
             zones = self.parameter['facade']['windows']
             states = self.parameter['facade']['states']
             flip_z = 'shade' in self.parameter['facade']['type']
-            if self.parameter['facade']['type'] == 'blinds':
-                darkstates = [s for s in states if s not in [0, 9, 10, 11]] # Specific for blinds
-            else:
-                darkstates = states[1:]
             gmodes = []
             for nz, z in enumerate(zones):
-                for t in darkstates:
+                for t in states[1:]: # non-dark states force high
                     wf_key = f'zone{t if flip_z else nz}_gmode'
                     if not wf_key in wf.columns:
                         wf_key = f'zone{t-1 if flip_z else nz-1}_gmode'

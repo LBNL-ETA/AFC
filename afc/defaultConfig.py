@@ -67,6 +67,7 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
         parameter['facade']['states'] = [0, 1, 2, 3] # dark to bright
         parameter['facade']['fstate_initial'] = [3, 3, 3] # Initial state of facade
         parameter['facade']['tvis'] = [0.01, 0.06, 0.18, 0.6] # dark to bright
+        parameter['facade']['window_ctrl_map'] = {} # only used for blinds and shades
     elif isinstance(facade_type, dict):
         parameter['facade'].update(facade_type)
     else:

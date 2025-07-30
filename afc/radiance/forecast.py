@@ -28,7 +28,7 @@ from frads import room, matrix, methods, geom
 from frads.methods import MatrixConfig
 import pyradiance as pr
 
-from afc.radiance.maps import shade_map_0x6, shade_map_0x4
+from afc.radiance.maps import make_ctrl_map
 from afc.radiance.constants import KFOMG, OMEGAS
 from afc.radiance.utility import create_trapezoid_mask
 
@@ -50,6 +50,7 @@ class Forecast:
         cfg_path,
         regenerate=None,
         facade_type="ec",
+        window_ctrl_map={},
         wpi_plot=False,
         wpi_loc="23back",
         wpi_all=False,
@@ -83,6 +84,7 @@ class Forecast:
             # add new config
             self.dims.update(dimensions)
         self.facade_type = facade_type
+        self.window_ctrl_map = window_ctrl_map
         self.wpi_plot = wpi_plot
         self.wpi_loc = wpi_loc
         self.wpi_all = wpi_all
@@ -107,18 +109,34 @@ class Forecast:
                 if i.endswith(".json")
             ]
         )
+        self.facade_states = {k:os.path.split(v)[-1].split('.')[0]
+            for k, v in enumerate(
+                self.glazing_system_paths if facade_type !='blinds' else
+                    self.glazing_system_paths[::-1])}
+        self.facade_states_inv = {v:k for k,v in self.facade_states.items()}
         self.glazing_systems = [
             fr.window.load_glazing_system(i) for i in self.glazing_system_paths
         ]
+
+        # make window_ctrl_map
+        if not self.window_ctrl_map:
+            window_zones = len([k for k in self.dims if k.startswith('window')])
+            self.window_ctrl_map = make_ctrl_map(facade_type,
+                                                 self.facade_states.values(),
+                                                 window_zones,
+                                                 window_zones if facade_type == 'ec' else 1)
+        self.window_ctrl_map_n = {k:[self.facade_states_inv[vv] for vv in v]
+            for k,v in self.window_ctrl_map.items()}
+
         self.make_room()
         self.get_workflow()
         self.make_matrices()
         self.get_matrices()
-        self.wwr = float(cfg_path.split("room")[1].split("WWR")[0])
-        if "shade" in self.facade_type and float(self.wwr) == 0.6:
-            self.shade_map = shade_map_0x6
-        elif "shade" in self.facade_type and float(self.wwr) == 0.4:
-            self.shade_map = shade_map_0x4
+        #self.wwr = float(cfg_path.split("room")[1].split("WWR")[0])
+        #if "shade" in self.facade_type and float(self.wwr) == 0.6:
+        #    self.shade_map = shade_map_0x6
+        #elif "shade" in self.facade_type and float(self.wwr) == 0.4:
+        #    self.shade_map = shade_map_0x4
         self.new_map = {}
         self.init = True
 
@@ -691,18 +709,15 @@ class Forecast:
                 output_df[abs2_col] = abs2 * _wndw_area
 
         # Process if shade
-        if "shade" in self.facade_type and not self._test_difference:
+        if not (self.facade_type == 'ec' or self._test_difference):
             if not self.new_map:
                 cols = output_df.columns
                 for prefix in np.unique([c.split("_")[0] for c in cols]):
-                    for i, v in enumerate(list(self.shade_map.values())[:-1]):
+                    for i, v in enumerate(list(self.window_ctrl_map_n.values())[:-1]):
                         self.new_map[f"{prefix}_0_{i}"] = [
                             f"{prefix}_{ii}_{vv}" for ii, vv in enumerate(v)
                         ]
                     i += 1
-                    self.new_map[f"{prefix}_0_{i}"] = [
-                        f"{prefix}_{ii}_1" for ii, vv in enumerate(v)
-                    ]
             temp = output_df.copy(deep=True)
             for k, v in self.new_map.items():
                 output_df[k] = temp[v].sum(axis=1)
@@ -785,5 +800,7 @@ if __name__ == "__main__":
 
     warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
+    #res = test(wwr=0.4, mode="shade", facade_type="shade")
+    #res = test(wwr=0.4, mode="blinds", facade_type="blinds")
     res = test(wwr=0.4, mode="ec", facade_type="ec")
-    res.to_csv("radiance-forecast_new.csv")
+    #res.to_csv("radiance-forecast_new.csv")
