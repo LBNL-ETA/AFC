@@ -93,6 +93,8 @@ def make_ctrl_map(mode, states, window_subdivs, window_zones):
         logic_map = list(itertools.product(*([states] * 1)))
         ctrl_msp = [list(itertools.chain.from_iterable([[ss]*windows_per_zone for ss in l]))
             for l in logic_map]
+        if mode == 'blinds':
+            ctrl_msp = ctrl_msp[::-1]
     else:
         raise ValueError(f'Glazing system not implemented: {mode}')
 

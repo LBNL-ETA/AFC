@@ -37,8 +37,9 @@ def control_model(inputs, parameter):
     if isinstance(inputs.index[0], type(pd.to_datetime(0))):
         inputs.index = inputs.index.astype('int64')/1e9 # Convert datetime to UNIX
 
-    model.fzones = Set(initialize=parameter['facade']['windows'], doc='window zones')
-    model.fstates = Set(initialize=parameter['facade']['states'], doc='facade states')
+    model.fzones = Set(initialize=parameter['facade']['logical_windows'], doc='window zones')
+    model.fstates = Set(initialize=parameter['facade']['logical_window_states'],
+                        doc='facade states')
     model.fstate_bin = Var(model.ts, model.fzones, model.fstates, domain=Binary,
                            doc='facade binary')
     # Thermal Comfort
@@ -235,7 +236,7 @@ def control_model(inputs, parameter):
 
     def zone_view_penalty(model, ts, fzone):
         return model.zone_view_penalty[ts] >= (- model.fstate[ts, fzone] \
-                                               + max(parameter['facade']['states'])) \
+                                              + max(parameter['facade']['logical_window_states'])) \
                                               * parameter['zone']['view_scale']
     model.constraint_zone_view_penalty = Constraint(model.ts, model.fzones, rule=zone_view_penalty,
                                                     doc='calculation of view penalty')

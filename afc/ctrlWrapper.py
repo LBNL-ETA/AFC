@@ -160,25 +160,7 @@ class Controller(eFMU):
             # Setup controller
             if self.init:
 
-                # DOPER controller
                 self.init_functions()
-                from afc.optModel import control_model#, pyomo_to_pandas
-                if self.parameter['wrapper']['solver_dir']:
-                    solver_path = \
-                        self.get_solver(self.parameter['wrapper']['solver_name'],
-                                        solver_dir=self.parameter['wrapper']['solver_dir'])
-                else:
-                    solver_path = self.get_solver(self.parameter['wrapper']['solver_name'])
-                pyomo_logger = \
-                    logging.WARNING if self.parameter['wrapper']['printing'] else \
-                        logging.ERROR
-                self.tariff = self.get_tariff(self.parameter['wrapper']['tariff_name'])
-                output_list = self.parameter['wrapper']['output_list']
-                self.controller = self.doper(model=control_model,
-                                             parameter=self.parameter,
-                                             solver_path=solver_path,
-                                             pyomo_logger=pyomo_logger,
-                                             output_list=output_list)
 
                 # Radiance forecaster
                 rad_paths = self.parameter['radiance']['paths']
@@ -200,12 +182,13 @@ class Controller(eFMU):
                                              wpi_all=self.parameter['radiance']['wpi_all'],
                                              wpi_config=self.parameter['radiance']['wpi_config'],
                                              reflectances=reflectances)
+                self.forecaster_class = self.forecaster
 
                 # Glare controller
                 rad_config = {'Dimensions': self.parameter['radiance']['dimensions'],
                               'View': {'views': self.forecaster.view}}
-                view_config = self.view_config_from_rad(rad_config,
-                                                        start_lx=20e3, end_lx=12.5e3)
+                view_config = self.view_config_from_rad(rad_config, start_lx=20e3, end_lx=12.5e3,
+                    combine_windows=not 'ec' in self.parameter['facade']['type'])
                 glare_config = copy.deepcopy(self.parameter['radiance']['location'])
                 glare_config.update(self.parameter['radiance']['view'])
                 self.glare_handler = \
@@ -229,7 +212,6 @@ class Controller(eFMU):
                         else:
                             temp = pd.concat([temp, self.forecaster.compute2( \
                                 wf_all[['dni','dhi']][wf_all.index.date == d])])
-                    self.forecaster_class = self.forecaster
                     self.forecaster = temp
 
                     # Glare handler
@@ -242,6 +224,31 @@ class Controller(eFMU):
                             [f'glare_ctrl_{i}' for i in range(len(glare_ctrl[0]))]
                         wf.loc[ix, self.glare_ctrl_cols] = glare_ctrl[0]
                     self.glare_handler = wf
+
+                # Update logical window system
+                self.parameter['facade']['logical_windows'] = \
+                    list(range(self.forecaster_class.logical_windows))
+                self.parameter['facade']['logical_window_states'] = \
+                    self.forecaster_class.logical_window_states
+
+                # DOPER controller
+                from afc.optModel import control_model#, pyomo_to_pandas
+                if self.parameter['wrapper']['solver_dir']:
+                    solver_path = \
+                        self.get_solver(self.parameter['wrapper']['solver_name'],
+                                        solver_dir=self.parameter['wrapper']['solver_dir'])
+                else:
+                    solver_path = self.get_solver(self.parameter['wrapper']['solver_name'])
+                pyomo_logger = \
+                    logging.WARNING if self.parameter['wrapper']['printing'] else \
+                        logging.ERROR
+                self.tariff = self.get_tariff(self.parameter['wrapper']['tariff_name'])
+                output_list = self.parameter['wrapper']['output_list']
+                self.controller = self.doper(model=control_model,
+                                             parameter=self.parameter,
+                                             solver_path=solver_path,
+                                             pyomo_logger=pyomo_logger,
+                                             output_list=output_list)
 
             # Compute radiance
             st1 = time.time()
@@ -273,18 +280,18 @@ class Controller(eFMU):
                     self.glare_ctrl_cols = [f'glare_ctrl_{i}' for i in range(len(glare_ctrl[0]))]
                     wf.loc[ix, self.glare_ctrl_cols] = glare_ctrl[0]
 
-            zones = self.parameter['facade']['windows']
-            states = self.parameter['facade']['states']
-            flip_z = 'shade' in self.parameter['facade']['type']
+            #flip_z = 'ec' in self.parameter['facade']['type']
             gmodes = []
-            for nz, z in enumerate(zones):
-                for t in states[1:]: # non-dark states force high
-                    wf_key = f'zone{t if flip_z else nz}_gmode'
-                    if not wf_key in wf.columns:
-                        wf_key = f'zone{t-1 if flip_z else nz-1}_gmode'
-                    gmodes.append(wf.loc[wf.index[0], wf_key])
+            for nz in self.parameter['facade']['logical_windows']:
+                wf_key = f'zone{nz}_gmode'
+                gmodes.append(wf.loc[wf.index[0], wf_key])
+                # non-dark states to clear
+                for t in self.parameter['facade']['logical_window_states'][1:]:
+                    #wf_key = f'zone{t if not flip_z else nz}_gmode'
+                    #if not wf_key in wf.columns:
+                    #    wf_key = f'zone{t-1 if not flip_z else nz-1}_gmode'
                     data[f'ev_{nz}_{t}'] = data[f'ev_{nz}_{t}'].mask( \
-                        (wf[wf_key] > 0) & (data[f'wpi_{nz}_{t}']>0), 2e4)
+                        (wf[wf_key] > 0) & (data[f'ev_{nz}_{t}']>0), 2e4)
             self.output['duration']['glare'] = time.time() - st1
 
             # Compute other inputs
@@ -410,7 +417,7 @@ class Controller(eFMU):
             if self.output['valid']:
                 # apply mpc setpoint
                 uShade = df[[f'Facade State {z}' for \
-                    z in self.parameter['facade']['windows']]].iloc[0].values
+                    z in self.parameter['facade']['logical_windows']]].iloc[0].values
                 self.output['ctrl-facade'] = [round(float(u),1) for u in uShade]
             elif self.parameter['wrapper']['use_fallback']:
                 # use heuristic control

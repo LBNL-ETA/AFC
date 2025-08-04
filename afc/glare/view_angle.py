@@ -49,7 +49,8 @@ def sun_in_view(view_dist, view_height, window_bottom_height, window_top_height,
         return bot_alt, top_alt, left_azi, right_azi, view_window_angle
     return bot_alt, top_alt, left_azi, right_azi
 
-def view_config_from_rad(cfg_path, start_lx=18e3, end_lx=11e3, fov_offset=2.5, elevation=0):
+def view_config_from_rad(cfg_path, start_lx=18e3, end_lx=11e3, fov_offset=2.5,
+                         elevation=0, combine_windows=False):
     """auto-generate view config from Radiance config."""
     # Load Radiance config
     if isinstance(cfg_path, str):
@@ -76,12 +77,25 @@ def view_config_from_rad(cfg_path, start_lx=18e3, end_lx=11e3, fov_offset=2.5, e
 
     # Make config
     view_config = {}
-    for i, _ in enumerate(window_bottom_heights):
+    if not combine_windows:
+        for i, _ in enumerate(window_bottom_heights):
+            bot_alt, top_alt, left_azi, right_azi, view_window_angle = \
+                sun_in_view(view_dist,
+                            view_height+elevation,
+                            window_bottom_heights[i]+elevation,
+                            window_top_heights[i]+elevation,
+                            window_width,
+                            get_angle=True)
+            view_config[f'window{i}_start_alt'] = round(bot_alt, 2)
+            view_config[f'window{i}_end_alt'] = round(top_alt, 2)
+            view_config['azi_fov'] = round(view_window_angle + fov_offset, 2)
+    else:
+        i = 0
         bot_alt, top_alt, left_azi, right_azi, view_window_angle = \
             sun_in_view(view_dist,
                         view_height+elevation,
-                        window_bottom_heights[i]+elevation,
-                        window_top_heights[i]+elevation,
+                        window_bottom_heights[0]+elevation, # bottom to top
+                        window_top_heights[-1]+elevation, # bottom to top
                         window_width,
                         get_angle=True)
         view_config[f'window{i}_start_alt'] = round(bot_alt, 2)

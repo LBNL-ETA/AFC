@@ -109,24 +109,30 @@ class Forecast:
                 if i.endswith(".json")
             ]
         )
+        if facade_type == 'blinds': # reverse order for blinds
+            self.glazing_system_paths = self.glazing_system_paths[::-1]
         self.facade_states = {k:os.path.split(v)[-1].split('.')[0]
-            for k, v in enumerate(
-                self.glazing_system_paths if facade_type !='blinds' else
-                    self.glazing_system_paths[::-1])}
+            for k, v in enumerate(self.glazing_system_paths)}
         self.facade_states_inv = {v:k for k,v in self.facade_states.items()}
         self.glazing_systems = [
             fr.window.load_glazing_system(i) for i in self.glazing_system_paths
         ]
 
         # make window_ctrl_map
+        self.window_zones = len([k for k in self.dims if k.startswith('window')])
+        self.logical_windows = self.window_zones if facade_type == 'ec' else 1
         if not self.window_ctrl_map:
-            window_zones = len([k for k in self.dims if k.startswith('window')])
             self.window_ctrl_map = make_ctrl_map(facade_type,
                                                  self.facade_states.values(),
-                                                 window_zones,
-                                                 window_zones if facade_type == 'ec' else 1)
+                                                 self.window_zones,
+                                                 self.logical_windows)
         self.window_ctrl_map_n = {k:[self.facade_states_inv[vv] for vv in v]
             for k,v in self.window_ctrl_map.items()}
+        self.logical_states = list(range(len(self.window_ctrl_map)))
+        if facade_type == 'ec':
+            self.logical_window_states = list(range(len(self.facade_states)))
+        else:
+            self.logical_window_states = self.logical_states
 
         self.make_room()
         self.get_workflow()
@@ -301,9 +307,9 @@ class Forecast:
                 solar_name = f"{gs.name}_solar"
                 abs1_name = f"{gs.name}_abs1"
                 abs2_name = f"{gs.name}_abs2"
-                visible_mtx = self.convert_mtx_to_frads(gs.visible_back_transmittance)
+                visible_mtx = self.convert_mtx_to_frads(gs.visible_front_transmittance)
                 self.workflow.config.model.materials.matrices[visible_name] = visible_mtx
-                solar_mtx = self.convert_mtx_to_frads(gs.solar_back_transmittance)
+                solar_mtx = self.convert_mtx_to_frads(gs.solar_front_transmittance)
                 self.workflow.config.model.materials.matrices[solar_name] = solar_mtx
                 abs1_array = np.array(gs.solar_front_absorptance[0]).reshape(1, -1)
                 abs1_mtx = self.convert_mtx_to_frads(abs1_array)
@@ -317,11 +323,11 @@ class Forecast:
                     window.proxy_geometry[visible_name] = b"\n".join(_geom)
 
         self._tvis = [
-            self.integrate_matrix(gs.visible_back_transmittance)
+            self.integrate_matrix(gs.visible_front_transmittance)
             for gs in self.glazing_systems
         ]
         self._tsol = [
-            self.integrate_matrix(gs.solar_back_transmittance)
+            self.integrate_matrix(gs.solar_front_transmittance)
             for gs in self.glazing_systems
         ]
         self._abs1 = [
@@ -634,7 +640,6 @@ class Forecast:
                         save_hdr=f'ctrl_{ix}.hdr',
                     )
                     pr.ra_tiff(pr.pcond(f'ctrl_{ix}.hdr', human=True), out=f'ctrl_{ix}.tif')
-
         for idx, window in enumerate(self.theroom.swall.windows):
             _wndw_area = np.linalg.norm(window.polygon.area)
             _window_name = window.primitive.identifier
@@ -709,15 +714,14 @@ class Forecast:
                 output_df[abs2_col] = abs2 * _wndw_area
 
         # Process if shade
-        if not (self.facade_type == 'ec' or self._test_difference):
+        if self.facade_type in ['shade', 'blinds'] and not self._test_difference:
             if not self.new_map:
                 cols = output_df.columns
                 for prefix in np.unique([c.split("_")[0] for c in cols]):
-                    for i, v in enumerate(list(self.window_ctrl_map_n.values())[:-1]):
+                    for i, v in enumerate(list(self.window_ctrl_map_n.values())):
                         self.new_map[f"{prefix}_0_{i}"] = [
                             f"{prefix}_{ii}_{vv}" for ii, vv in enumerate(v)
                         ]
-                    i += 1
             temp = output_df.copy(deep=True)
             for k, v in self.new_map.items():
                 output_df[k] = temp[v].sum(axis=1)
@@ -733,7 +737,7 @@ def test(
     mode="dshade",  # ['dshade', 'shade', 'blinds', 'ec']
     facade_type="shade",  # ['shade', 'blinds', 'ec']
 ):
-    """test funciton for radiance"""
+    """test function for radiance"""
 
     from afc.radiance.configs import get_config
 
@@ -742,6 +746,8 @@ def test(
     # configuration
     print("Running example for:", wwr, mode, facade_type)
     filestruct, config_path = get_config(mode, wwr)
+    # config_path = \
+    #    '/usr/local/lib/python3.10/dist-packages/afc/resources/radiance/room0.4WWR_ec.cfg'
 
     print(filestruct, config_path)
 
@@ -785,9 +791,10 @@ def test(
         res = forecaster.compute2(fake_df)
         print(time.time() - st)
     print(f"Forecast of 24h x 5min in {round(time.time() - st, 2)} s")
-    # print(res.columns)
+    print(res.columns)
     # for k,v in forecaster.new_map.items():
     #    print(k, v)
+    #print([c for c in res.columns if c.startswith('wpi_')])
     print(res)
     # print(res["wpi_0_5"])
     #print(res['wpi-all_0_0'])
@@ -801,6 +808,6 @@ if __name__ == "__main__":
     warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
     #res = test(wwr=0.4, mode="shade", facade_type="shade")
-    #res = test(wwr=0.4, mode="blinds", facade_type="blinds")
-    res = test(wwr=0.4, mode="ec", facade_type="ec")
+    res = test(wwr=0.4, mode="blinds", facade_type="blinds")
+    #res = test(wwr=0.4, mode="ec", facade_type="ec")
     #res.to_csv("radiance-forecast_new.csv")
