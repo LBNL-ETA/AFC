@@ -4,5 +4,5 @@ pvlib
 fmlc
 timezonefinder
 pytz
-frads @ git+https://github.com/LBNL-ETA/frads@v2.1.10
+frads @ git+https://github.com/LBNL-ETA/frads@v2.1.12
 doper @ git+https://github.com/LBNL-ETA/DOPER
