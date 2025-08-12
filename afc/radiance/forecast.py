@@ -248,7 +248,7 @@ class Forecast:
             "time_zone": self.timezone,
             "site_elevation": self.elevation,
             "save_matrices": True,
-            "matrix_dir": self.matricesd,
+            "output_directory": self.matricesd,
             #"sensor_window_matrix": self.vmx_opt.split(),
             #"daylight_matrix": self.dmx_opt.split(),
             #"surface_window_matrix": self.vsmx_opt.split(),
