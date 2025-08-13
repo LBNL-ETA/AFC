@@ -13,8 +13,11 @@ Radiance forecasting module.
 # pylint: disable=consider-using-dict-items, protected-access, pointless-string-statement
 # pylint: disable=import-outside-toplevel, too-many-positional-arguments, too-many-branches
 # pylint: disable=dangerous-default-value, consider-using-generator, unused-variable
+# pylint: disable=wrong-import-position
 
 import os
+os.environ['OPENBLAS_NUM_THREADS'] = '1' # this is faster in most situations (np.linalg.multi_dot)
+
 import time
 import json
 #import multiprocessing as mp
@@ -33,8 +36,6 @@ from afc.radiance.constants import KFOMG, OMEGAS
 from afc.radiance.utility import create_trapezoid_mask
 
 root = os.path.dirname(os.path.realpath(__file__))
-
-mult = np.linalg.multi_dot
 
 # versions
 with open(os.path.join(root, "..", "__init__.py"), "r", encoding="utf8") as f:
@@ -62,6 +63,7 @@ class Forecast:
         dimensions=None,
         render=False,
         reflectances={'floor': 0.2, 'walls': 0.5, 'ceiling': 0.7},
+        n_cpus=-1
     ):
         self.root = os.path.dirname(os.path.abspath(__file__))
         self.parse_config(cfg_path)
@@ -93,6 +95,11 @@ class Forecast:
         self._test_difference = _test_difference
         self.render = render
         self.reflectances = reflectances
+        self.n_cpus = n_cpus
+
+        # define cpus:
+        if self.n_cpus > 0:
+            os.environ['OPENBLAS_NUM_THREADS'] = str(int(self.n_cpus))
 
         # make wpi grid config
         self.grid_height = float(self.wpi_config['grid_height'])
@@ -138,6 +145,7 @@ class Forecast:
         self.get_workflow()
         self.make_matrices()
         self.get_matrices()
+
         #self.wwr = float(cfg_path.split("room")[1].split("WWR")[0])
         #if "shade" in self.facade_type and float(self.wwr) == 0.6:
         #    self.shade_map = shade_map_0x6
@@ -736,6 +744,7 @@ def test(
     wwr=0.4,  # [0.4, 0.6]
     mode="dshade",  # ['dshade', 'shade', 'blinds', 'ec']
     facade_type="shade",  # ['shade', 'blinds', 'ec']
+    single_step=True,
 ):
     """test function for radiance"""
 
@@ -761,23 +770,21 @@ def test(
         #wpi_loc="trap0.5",
         wpi_loc="23back",
         render=False,
+        n_cpus=-1,
     )
 
     for _ in range(3):
-        # df = pd.DataFrame([[800, 80], [750, 100], [100, 10]],
-        #                       index=pd.DatetimeIndex([
-        #                           pd.datetime(2019, 12, 21, 12, 0),
-        #                           pd.datetime(2019, 12, 21, 12, 10),
-        #                           pd.datetime(2019, 12, 21, 12, 20),
-        #                       ]))
+
+        # multi-step
         df = pd.DataFrame(
-            index=pd.date_range("2020-01-01 00:00", "2020-01-02 00:00", freq="5min")
+            index=pd.date_range("2020-01-01 00:00", "2020-01-05 00:00", freq="5min")
         )
         np.random.seed(1)
         df["dni"] = np.random.uniform(0, 1000, len(df))
         np.random.seed(1)
         df["dhi"] = np.random.uniform(0, 250, len(df))
 
+        # single-step
         fake_df = pd.DataFrame(
             [[185.5, 42], [165.3, 38.3]],
             index=pd.DatetimeIndex(
@@ -788,7 +795,8 @@ def test(
 
         st = time.time()
         # res = forecaster.compute(df)
-        res = forecaster.compute2(fake_df)
+        tt = fake_df if single_step else df
+        res = forecaster.compute2(tt)
         print(time.time() - st)
     print(f"Forecast of 24h x 5min in {round(time.time() - st, 2)} s")
     print(res.columns)
@@ -808,6 +816,6 @@ if __name__ == "__main__":
     warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
     #res = test(wwr=0.4, mode="shade", facade_type="shade")
-    res = test(wwr=0.4, mode="blinds", facade_type="blinds")
+    res = test(wwr=0.4, mode="blinds", facade_type="blinds", single_step=False)
     #res = test(wwr=0.4, mode="ec", facade_type="ec")
     #res.to_csv("radiance-forecast_new.csv")

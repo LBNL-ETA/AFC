@@ -181,8 +181,16 @@ class Controller(eFMU):
                                              dimensions=self.parameter['radiance']['dimensions'],
                                              wpi_all=self.parameter['radiance']['wpi_all'],
                                              wpi_config=self.parameter['radiance']['wpi_config'],
-                                             reflectances=reflectances)
-                self.forecaster_class = self.forecaster
+                                             reflectances=reflectances,
+                                             n_cpus=self.parameter['radiance']['n_cpus'])
+                # Update logical window system
+                self.parameter['facade']['logical_windows'] = \
+                    list(range(self.forecaster.logical_windows))
+                self.parameter['facade']['logical_window_states'] = \
+                    self.forecaster.logical_window_states
+                # Store class
+                if self.parameter['radiance']['store_class']:
+                    self.forecaster_class = self.forecaster
 
                 # Glare controller
                 rad_config = {'Dimensions': self.parameter['radiance']['dimensions'],
@@ -224,12 +232,6 @@ class Controller(eFMU):
                             [f'glare_ctrl_{i}' for i in range(len(glare_ctrl[0]))]
                         wf.loc[ix, self.glare_ctrl_cols] = glare_ctrl[0]
                     self.glare_handler = wf
-
-                # Update logical window system
-                self.parameter['facade']['logical_windows'] = \
-                    list(range(self.forecaster_class.logical_windows))
-                self.parameter['facade']['logical_window_states'] = \
-                    self.forecaster_class.logical_window_states
 
                 # DOPER controller
                 from afc.optModel import control_model#, pyomo_to_pandas

@@ -94,6 +94,8 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
     # setup Radiance
     parameter['radiance'] = {}
     parameter['radiance']['regenerate'] = regenerate
+    parameter['radiance']['store_class'] = False # store the radiance forecaster class
+    parameter['radiance']['n_cpus'] = -1 # cpu cores for computation
     parameter['radiance']['wwr'] = round(wwr, 1)
     parameter['radiance']['wpi_loc'] = '23back'
     parameter['radiance']['wpi_all'] = False
