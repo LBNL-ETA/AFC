@@ -94,3 +94,38 @@ def test1():
     if not compare_dataframes(base, rad, tolerance=5):
         rad.to_csv(os.path.join('frads.csv'))
     assert compare_dataframes(base, rad, tolerance=5)
+    
+def test2():
+    """
+    This is test2 to test the AFC functionality for different RC models.
+    """
+
+    # read weather (forecast) data
+    wf = example_weather_forecast(date='2023-07-01')
+    df = wf[wf.index.date == wf.index[0].date()]
+
+    cases = []
+    cases.append([{'type': 'R1C1', 'Roi': 0.1, 'Ci': 150e3}, ['room']])
+    cases.append([{'type': 'R2C2', 'Roi': 0.1, 'Ci': 150e3, 'Ris': 0.01, 'Cs': 500e3},
+                  ['room', 'slab']])
+
+    for case in cases:
+        print(case)
+        
+        # Initialize controller
+        ctrl = Controller()
+
+        # Make inputs
+        parameter = default_parameter()
+        parameter['zone']['param'] = case[0]
+        parameter['zone']['temps_name'] = case[1]
+        inputs = make_inputs(parameter, df)
+
+        # Query controller
+        print(ctrl.do_step(inputs=inputs))
+        df_res = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
+
+        # check overall
+        res = ctrl.get_output(keys=['opt-stats', 'duration'])
+        assert res['opt-stats']['termination'] == 'optimal'
+

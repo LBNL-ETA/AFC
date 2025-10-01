@@ -49,7 +49,7 @@ def R1C1(i, Ti_p, To, Qi_ext, param):
     #If not the first timestep
     Ti = (Roi*Qi_ext + Roi*Ci*Ti_p + To) / (1 + Roi*Ci) #Calculate indoor
     #temperature at the next time step using R1C1 model
-    return Ti #Return the calculated indoor temperature at this timestep
+    return [Ti] #Return the calculated indoor temperature at this timestep
 
 def R2C2(i, T1_prev, T2_prev, T_out, Q1_ext, Q2_ext, param):
     """Function for RC model considering indoor, outdoor, slab conditions.

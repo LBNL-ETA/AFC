@@ -22,10 +22,10 @@ from doper.models.basemodel import base_model
 # from doper.models.battery import add_battery
 
 try:
-    from .rcModel import R2C2, R4C2, R5C3, R6C3
+    from .rcModel import R1C1, R2C2, R4C2, R5C3, R6C3
 except:
     sys.path.append(os.path.join('..', 'afc'))
-    from rcModel import R2C2, R4C2, R5C3, R6C3
+    from rcModel import R1C1, R2C2, R4C2, R5C3, R6C3
 
 def control_model(inputs, parameter):
     """Control model for the AFC."""
@@ -63,11 +63,6 @@ def control_model(inputs, parameter):
         initialize=pandas_to_dict(inputs[[f'wpi_{z}_{s}' for z, s in fmap]], \
                                   columns=fmap), \
                              doc='facade wpi lookup table')
-    if parameter['zone']['param']['type'] == 'R2C2':
-        model.facade_shg = Param(model.ts, model.fzones, model.fstates,
-            initialize=pandas_to_dict(inputs[[f'shg_{z}_{s}' for z, s in fmap]], \
-                                      columns=fmap), \
-                                 doc='facade shg lookup table')
     model.facade_vil = Param(model.ts, model.fzones, model.fstates,
         initialize=pandas_to_dict(inputs[[f'ev_{z}_{s}' for z, s in fmap]], \
                                   columns=fmap), \
@@ -120,12 +115,6 @@ def control_model(inputs, parameter):
         return model.zone_wpi[ts] == \
             sum(model.facade_wpi[ts, z, s] * model.fstate_bin[ts, z, s] for z, s in fmap)
     model.constraint_zone_wpi = Constraint(model.ts, rule=zone_wpi, doc='calculation of wpi')
-
-    if parameter['zone']['param']['type'] == 'R2C2':
-        def zone_shg(model, ts):
-            return model.zone_shg[ts] == \
-                sum(model.facade_shg[ts, z, s] * model.fstate_bin[ts, z, s] for z, s in fmap)
-        model.constraint_zone_shg = Constraint(model.ts, rule=zone_shg, doc='calculation of shg')
 
     def zone_vil(model, ts):
         return model.zone_vil[ts] == \
@@ -363,53 +352,48 @@ def control_model(inputs, parameter):
     model.zone_qs = Var(model.ts, doc='gains in slab (radiative) in zone')
 
     def zone_qi(model, ts):
-        param = parameter['zone']['param']
         Qi_ext = model.p_lights[ts] * (1 - parameter['zone']['lighting_split']) \
                  + model.zone_occload[ts] * (1 - parameter['zone']['occupancy_split']) \
                  + model.zone_plugload[ts] * (1 - parameter['zone']['plugload_split']) \
-                 + model.zone_heat[ts, 0] - model.zone_cool[ts, 0]
-        if param['type'] == 'R2C2':
-            Qi_ext += model.zone_shg[ts] * (1 - parameter['zone']['shg_split'])
-        else:
-            Qi_ext += model.zone_tsol[ts] * (1 - parameter['zone']['tsol_split'])
+                 + model.zone_heat[ts, 0] - model.zone_cool[ts, 0] \
+                 + model.zone_tsol[ts] * (1 - parameter['zone']['tsol_split'])
         return model.zone_qi[ts] == Qi_ext
     model.constraint_zone_qi = Constraint(model.ts, rule=zone_qi, doc='calculaiton convective')
 
     def zone_qw(model, ts):
-        param = parameter['zone']['param']
         Qw_ext = model.p_lights[ts] * parameter['zone']['lighting_split'] \
                  + model.zone_occload[ts] * parameter['zone']['occupancy_split'] \
-                 + model.zone_plugload[ts] * parameter['zone']['plugload_split']
-        if param['type'] == 'R2C2':
-            Qw_ext += model.zone_shg[ts] * parameter['zone']['shg_split']
-        else:
-            Qw_ext += model.zone_tsol[ts] * parameter['zone']['tsol_split']
+                 + model.zone_plugload[ts] * parameter['zone']['plugload_split'] \
+                 + model.zone_tsol[ts] * parameter['zone']['tsol_split']
         return model.zone_qw[ts] == Qw_ext
     model.constraint_zone_qw = Constraint(model.ts, rule=zone_qw,
-                                          doc='calculaiton radiative gains wall')
+                                          doc='calculation radiative gains wall')
 
     def zone_qs(model, ts):
         return model.zone_qs[ts] == model.zone_iflr[ts]
     model.constraint_zone_qs = Constraint(model.ts, rule=zone_qs,
-                                          doc='calculaiton radiative gains slab')
+                                          doc='calculation radiative gains slab')
 
     def zone_temp(model, ts, temps):
         if ts == model.ts.at(1):
             return model.zone_temp[ts, temps] == parameter['zone']['temps_initial'][temps]
 
         Ti_p = model.zone_temp[ts-model.timestep[ts], 0]
-        Ts_p = model.zone_temp[ts-model.timestep[ts], 1]
         To = model.outside_temperature[ts-model.timestep[ts]]
         Qi_ext = model.zone_qi[ts-model.timestep[ts]]
         Qw_ext = model.zone_qw[ts-model.timestep[ts]]
         param = parameter['zone']['param'].copy()
         param['timestep'] = model.timestep[ts]
-        if param['type'] == 'R2C2':
+        if param['type'] == 'R1C1':
+            res_temps = R1C1(1, Ti_p, To, Qi_ext + Qw_ext, param)
+        elif param['type'] == 'R2C2':
+            Ts_p = model.zone_temp[ts-model.timestep[ts], 1]
             res_temps = R2C2(1, Ti_p, Ts_p, To, Qi_ext, Qw_ext, param)
         elif param['type'] in ['R4C2', 'R5C3', 'R6C3']:
             Qw1_ext = model.zone_abs1[ts-model.timestep[ts]]
             Qw2_ext = model.zone_abs2[ts-model.timestep[ts]]
             Qs_ext = model.zone_qs[ts-model.timestep[ts]]
+            Ts_p = model.zone_temp[ts-model.timestep[ts], 1]
             if param['type'] == 'R4C2':
                 Qi_ext = Qi_ext + Qw_ext - Qs_ext
                 Qw_ext = Qs_ext
@@ -429,7 +413,7 @@ def control_model(inputs, parameter):
             raise ValueError(f'RC model type {param["type"]} not supported.')
         return model.zone_temp[ts, temps] == res_temps[temps]
     model.constraint_zone_temp = Constraint(model.ts, model.temps, rule=zone_temp,
-                                            doc='calculaiton of temperature')
+                                            doc='calculation of temperature')
 
     def zone_heating_limit(model, ts, temps):
         return model.zone_heat[ts, temps] <= parameter['zone']['heat_max'][temps]
