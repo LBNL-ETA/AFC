@@ -118,7 +118,7 @@ class Forecast:
         )
         if facade_type == 'blinds': # reverse order for blinds
             self.glazing_system_paths = self.glazing_system_paths[::-1]
-        self.facade_states = {k:os.path.split(v)[-1].split('.')[0]
+        self.facade_states = {k:os.path.split(v)[-1].split('.json')[0]
             for k, v in enumerate(self.glazing_system_paths)}
         self.facade_states_inv = {v:k for k,v in self.facade_states.items()}
         self.glazing_systems = [
