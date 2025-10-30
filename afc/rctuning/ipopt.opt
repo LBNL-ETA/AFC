@@ -1,0 +1,8 @@
+# Set maximal number of iterations (default = 3000)
+max_iter 9999
+
+# Set maximal cpu time (seconds) (default = 10e6)
+#max_cpu_time 9999
+
+# Set MUMPS memory limit (default = 1000)
+mumps_mem_percent 1000000

@@ -29,6 +29,8 @@ i = Current time (Not just an index)
 # pylint: disable=invalid-name, too-many-arguments, too-many-locals, too-many-statements
 # pylint: disable=too-many-positional-arguments
 
+RCTYPES = ['R1C1', 'R2C2', 'R4C2', 'R5C3', 'R6C3']
+
 def R1C1(i, Ti_p, To, Qi_ext, param):
     """Function for RC model considering indoor, outdoor conditions.
 
@@ -40,14 +42,14 @@ def R1C1(i, Ti_p, To, Qi_ext, param):
     """
 
     timestep = param['timestep'] #Read the timestep from param
-    Roi = param['Roi'] #Resistance between the outside and the inside
-    Ci = param['Ci'] / timestep #Ci = Capacitance inside
+    R1 = param['Rw2i'] #Resistance between the outside and the inside
+    C1 = param['Ci'] / timestep #Ci = Capacitance inside
 
     if i == 0: #If calculating at time = 0
         return Ti_p #Return initial indoor temperature
 
     #If not the first timestep
-    Ti = (Roi*Qi_ext + Roi*Ci*Ti_p + To) / (1 + Roi*Ci) #Calculate indoor
+    Ti = (R1*Qi_ext + R1*C1*Ti_p + To) / (1 + R1*C1) #Calculate indoor
     #temperature at the next time step using R1C1 model
     return [Ti] #Return the calculated indoor temperature at this timestep
 
@@ -63,7 +65,7 @@ def R2C2(i, T1_prev, T2_prev, T_out, Q1_ext, Q2_ext, param):
     """
 
     timestep = param['timestep'] #Read the timestep
-    R1 = param['Roi'] #Read the resistane between indoor and outdoor
+    R1 = param['Rw2i'] #Read the resistane between indoor and outdoor
     C1 = param['Ci'] / timestep #Calculate the indoor air C/dt
     R2 = param['Ris'] #Read the resistance between indoor and the slab
     C2 = param['Cs'] / timestep #Calculate the slab C/dt

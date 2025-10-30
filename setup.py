@@ -40,6 +40,7 @@ setuptools.setup(
                   'afc': ['glare/*',
                           'radiance/*',
                           'utility/*',
+                          'rctuning/*',
                           'resources/*',
                           'resources/*/*',
                           'resources/*/*/*',

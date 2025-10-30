@@ -286,7 +286,8 @@ def control_model(inputs, parameter):
                              doc='electric equipment load in room')
     model.zone_plugload = Param(model.ts, initialize=pandas_to_dict(inputs['plug_load']),
                                 doc='thermal plugloads in room')
-    model.zone_occload = Param(model.ts, initialize=pandas_to_dict(inputs['occupant_load']),
+    occload = inputs['occupant_load'] * parameter['zone']['occupancy_sensible']
+    model.zone_occload = Param(model.ts, initialize=pandas_to_dict(occload),
                                doc='thermal occupant load in room')
     model.occupancy_light = Param(model.ts, initialize=pandas_to_dict(inputs['occupancy_light']),
                                   doc='occupancy light in room')

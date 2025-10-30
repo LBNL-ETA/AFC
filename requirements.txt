@@ -4,5 +4,6 @@ pvlib
 fmlc
 timezonefinder
 pytz
+pydoe
 frads @ git+https://github.com/LBNL-ETA/frads@v2.1.14
 doper @ git+https://github.com/LBNL-ETA/DOPER

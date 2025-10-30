@@ -181,11 +181,11 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     parameter['zone']['temps_name'] = ['room', 'slab'] #, 'wall']
     parameter['zone']['temps_initial'] = [22.5, 22.5, 22.5]
 
-    parameter['zone']['lighting_split'] = 0.5 # Match to emulator (1=rad, 0=conv)
-    parameter['zone']['plugload_split'] = 0 # Match to emulator (1=rad, 0=conv)
-    parameter['zone']['occupancy_split'] = 1 # Match to emulator (1=rad, 0=conv)
+    parameter['zone']['lighting_split'] = 0.6 # Match to emulator (1=rad, 0=conv)
+    parameter['zone']['plugload_split'] = 0.5 # Match to emulator (1=rad, 0=conv)
+    parameter['zone']['occupancy_split'] = 0.3 # Match to emulator (1=rad, 0=conv)
+    parameter['zone']['occupancy_sensible'] = 0.65 # Sensible portion from occupancy load
     parameter['zone']['tsol_split'] = 1 # All Tsol on surfaces (1=rad, 0=conv)
-    parameter['zone']['shg_split'] = 0 # All SHG in air 1=rad, 0=conv
 
     # penalty definition
     parameter['zone']['glare_diff'] = 0.1 # Lower bound of glare penalty (glare_max - glare_diff)
