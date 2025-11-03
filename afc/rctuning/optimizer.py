@@ -42,8 +42,8 @@ def optimize_param(inputs, parameter, printing=True, model=model):
     # do optmization
     rctuner = DOPER(model=model,
                     parameter=parameter,
-                    solver_path=parameter['wrapper']['solver_path'],
-                    output_list=parameter['wrapper']['output_list'])
+                    solver_path=parameter['solver_path'],
+                    output_list=parameter['output_list'])
     if printing:
         print(f'** Objective is Mean Squared Error; model is {parameter["type"]} **')
     # solver_options = {'print_level': int(5), # default = 5
@@ -53,7 +53,7 @@ def optimize_param(inputs, parameter, printing=True, model=model):
     #                  }
     res = rctuner.do_optimization(inputs,
                                   tee=printing,
-                                  options=parameter['wrapper']['solver_options'])
+                                  options=parameter['solver_options'])
 
     duration, objective, df, model, result, termination, parameter = res
 
@@ -90,7 +90,8 @@ def do_tuning(inputs, parameter, printing=True, lhs_samples=5, seed=1,
             print('ERROR: pyDOE not loaded; no lhs executed.')
         if lhs_samples > 1 and PYDOE_LOADED:
             pars = [k for k,v in parameter.items() if isinstance(v, dict) \
-                    and not k in ['objective', 'wrapper']]
+                    and not k in ['objective', 'output_list',
+                                  'solver_options', 'solver_path']]
             np.random.seed(seed)
             lhs_param = lhs(len(pars), lhs_samples-1)
 

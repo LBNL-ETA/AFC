@@ -37,10 +37,9 @@ def default_parameter(rctype='R4C2', fixed_air_valume=None):
     parameter = {}
 
     # wrapper
-    parameter['wrapper'] = {}
-    parameter['wrapper']['solver_path'] = 'ipopt'
-    parameter['wrapper']['solver_options'] = {'max_cpu_time': 300}
-    parameter['wrapper']['output_list'] = make_output_list(rc_type=rctype)
+    parameter['solver_path'] = 'ipopt'
+    parameter['solver_options'] = {'max_cpu_time': 300}
+    parameter['output_list'] = make_output_list(rc_type=rctype)
 
     # rc parameter
     parameter['type'] = rctype
