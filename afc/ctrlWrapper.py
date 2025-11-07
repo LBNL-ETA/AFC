@@ -469,6 +469,7 @@ def make_inputs(parameter, df, ext_df=pd.DataFrame(), return_json=True):
         'glare_max': parameter['occupant']['glare_max'],
         'temp_room_max': parameter['occupant']['temp_room_max'],
         'temp_room_min': parameter['occupant']['temp_room_min'],
+        'zone_absf': 0, # exterior wall heat gain
         'wind_speed': 0,
         'generation_pv': 0,
         'load_demand': 0,

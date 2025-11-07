@@ -9,15 +9,16 @@ Reduced-order RC tuning model.
 """
 
 # pylint: disable=too-many-arguments, invalid-name, too-many-locals
-# pylint: disable=too-many-statements, redefined-outer-name, use-a-generator
+# pylint: disable=too-many-statements, redefined-outer-name
 # pylint: disable=possibly-used-before-assignment
 
+import numpy as np
 import pandas as pd
 from doper.utility import pandas_to_dict
 from pyomo.environ import ConcreteModel, Set, Param, Var, Constraint #, Binary
 from pyomo.environ import Objective, minimize #, Piecewise
 
-from .. import rcModel
+from ..optModel import zone_temp
 
 def model(inputs, parameter):
     '''rc tuning model for doper'''
@@ -27,13 +28,15 @@ def model(inputs, parameter):
 
     model = ConcreteModel()
 
+    model.zone_parameters = parameter
+    model.rctuning = True
+
     # Sets
     index = list(inputs.index.values)
     model.ts = Set(initialize=index, ordered=True, doc='timesteps')
-    timestep = index[1] - index[0]
-    model.timestep = timestep
-    timestep_scale = 3600 / float(timestep)
-    model.timestep_scale = timestep_scale
+    model.timestep = \
+        {inputs.index[i]:np.append([0], np.diff(inputs.index.values))[i] \
+         for i in range(len(inputs.index))} # in seconds
     evaluation_ts = list(model.ts)[1:-1] # Timestep for accounting (cutoff last timestep)
     model.temps = Set(initialize=range(len(parameter['temps_initial'])), doc='zone temperatures')
 
@@ -53,13 +56,15 @@ def model(inputs, parameter):
 #                        doc='heat transfer coefficient outdoor [W/K]')
     model.zone_qi = Param(model.ts, initialize=pandas_to_dict(inputs['zone_qi']), \
                           doc='convective heat gain [W]')
+    model.zone_qw = Param(model.ts, initialize=pandas_to_dict(inputs['zone_qw']), \
+                            doc='radiative heat gain on walls [W]')
     model.zone_troom = Param(model.ts, initialize=pandas_to_dict(inputs['zone_troom']), \
                              doc='room temperature [C]')
     # model.zone_Qw2i = Param(model.ts, initialize=pandas_to_dict(inputs['zone_Qw2i']), \
     #                          doc='Qw2i heat flow [W]')
 
     # Variables (parameter to tune)
-    param = parameter
+    param = parameter['param']
     model.rc_parameter = []
     # one mass (air)
     model.Rw2i = Var(initialize=param['Rw2i']['init'],
@@ -68,22 +73,8 @@ def model(inputs, parameter):
     model.Ci = Var(initialize=param['Ci']['init'],
                    bounds=(param['Ci']['lb'], param['Ci']['ub']))
     model.rc_parameter.append('Ci')
-    # two mass (slab)
-    if parameter['type'] in ['R2C2', 'R4C2', 'R5C2', 'R5C3', 'R6C3']:
-        model.zone_qs = Param(model.ts, initialize=pandas_to_dict(inputs['zone_qs']), \
-                            doc='radiative heat gain [W]')
-        model.zone_tslab = Param(model.ts, initialize=pandas_to_dict(inputs['zone_tslab']), \
-                                doc='slab temperature [C]')
-        model.Ris = Var(initialize=param['Ris']['init'],
-                        bounds=(param['Ris']['lb'], param['Ris']['ub']))
-        model.rc_parameter.append('Ris')
-        model.Cs = Var(initialize=param['Cs']['init'],
-                    bounds=(param['Cs']['lb'], param['Cs']['ub']))
-        model.rc_parameter.append('Cs')
-    # three mass (wall)
-    if parameter['type'] in ['R5C3', 'R6C3']:
-        model.zone_qw = Param(model.ts, initialize=pandas_to_dict(inputs['zone_qw']), \
-                              doc='radiative heat gain on walls [W]')
+    # two mass (wall)
+    if param['type'] in ['R2C2', 'R4C2', 'R5C2', 'R5C3', 'R6C3', 'R7C4']:
         model.zone_twall = Param(model.ts, initialize=pandas_to_dict(inputs['zone_twall']), \
                                  doc='wall temperature [C]')
         model.Riw = Var(initialize=param['Riw']['init'],
@@ -92,8 +83,20 @@ def model(inputs, parameter):
         model.Cw = Var(initialize=param['Cw']['init'],
                        bounds=(param['Cw']['lb'], param['Cw']['ub']))
         model.rc_parameter.append('Cw')
+    # three mass (slab)
+    if param['type'] in ['R5C3', 'R6C3', 'R7C4']:
+        model.zone_qs = Param(model.ts, initialize=pandas_to_dict(inputs['zone_qs']), \
+                            doc='radiative heat gain [W]')
+        model.zone_tslab = Param(model.ts, initialize=pandas_to_dict(inputs['zone_tslab']), \
+                                 doc='slab temperature [C]')
+        model.Ris = Var(initialize=param['Ris']['init'],
+                        bounds=(param['Ris']['lb'], param['Ris']['ub']))
+        model.rc_parameter.append('Ris')
+        model.Cs = Var(initialize=param['Cs']['init'],
+                    bounds=(param['Cs']['lb'], param['Cs']['ub']))
+        model.rc_parameter.append('Cs')
     # window system
-    if parameter['type'] in ['R4C2', 'R5C2', 'R5C3', 'R6C3']:
+    if param['type'] in ['R4C2', 'R5C2', 'R5C3', 'R6C3', 'R7C4']:
         model.zone_abs1 = Param(model.ts, initialize=pandas_to_dict(inputs['zone_abs1']), \
                                 doc='window absorption outer layer [W]')
         model.zone_abs2 = Param(model.ts, initialize=pandas_to_dict(inputs['zone_abs2']), \
@@ -105,10 +108,28 @@ def model(inputs, parameter):
                         bounds=(param['Rw1w2']['lb'], param['Rw1w2']['ub']))
         model.rc_parameter.append('Rw1w2')
     # exterior walls
-    if parameter['type'] in ['R5C2', 'R6C3']:
+    if param['type'] in ['R5C2', 'R6C3']:
         model.Roi = Var(initialize=param['Roi']['init'],
                         bounds=(param['Roi']['lb'], param['Roi']['ub']))
         model.rc_parameter.append('Roi')
+    # exterior walls
+    if param['type'] in ['R7C4']:
+        # model.zone_qf = Param(model.ts, initialize=pandas_to_dict(inputs['zone_qf']), \
+        #                       doc='radiative heat gain on exterior walls [W]')
+        model.zone_absf = Param(model.ts, initialize=pandas_to_dict(inputs['zone_absf']), \
+                                doc='window absorption exterior wall [W]')
+        model.zone_textw = Param(model.ts, initialize=pandas_to_dict(inputs['zone_textw']), \
+                                 doc='external wall temperature [C]')
+        model.Rof = Var(initialize=param['Rof']['init'],
+                        bounds=(param['Rof']['lb'], param['Rof']['ub']))
+        model.rc_parameter.append('Rof')
+        model.Rfi = Var(initialize=param['Rfi']['init'],
+                        bounds=(param['Rfi']['lb'], param['Rfi']['ub']))
+        model.rc_parameter.append('Rfi')
+        model.Cf = Var(initialize=param['Cf']['init'],
+                       bounds=(param['Cf']['lb'], param['Cf']['ub']))
+        model.rc_parameter.append('Cf')
+
     # model.Qw2i = Var(model.ts)
 
     # Windspeed model
@@ -140,69 +161,7 @@ def model(inputs, parameter):
 
     # RC model
     model.zone_temp = Var(model.ts, model.temps, doc='temperature in zone')
-    def zone_temp(model, ts, temps):
-        '''calculate zone temperature'''
-        if ts == model.ts.at(1):
-            #if parameter['type'] in ['R5C3', 'R6C3']:
-            #    print('*** Windspeed in Model ***')
-            return model.zone_temp[ts, temps] == parameter['temps_initial'][temps]
 
-        # inputs
-        Ti_p = model.zone_temp[ts-timestep, 0]
-        To = model.outside_temperature[ts]
-        Qi_ext = model.zone_qi[ts]
-
-        # two mass
-        if 'C2' in parameter['type']:
-            Ts_p = model.zone_temp[ts-timestep, 1]
-            Qs_ext = model.zone_qs[ts]
-        # three mass
-        elif 'C3' in parameter['type']:
-            Ts_p = model.zone_temp[ts-timestep, 1]
-            Tw_p = model.zone_temp[ts-timestep, 2]
-            Qs_ext = model.zone_qs[ts]
-            Qw_ext = model.zone_qw[ts]
-        # window system
-        if any([parameter['type'].startswith(r) for r in ['R4', 'R5', 'R6']]):
-            Qw1_ext = model.zone_abs1[ts]
-            Qw2_ext = model.zone_abs2[ts]
-
-        # rc model selection
-        param = {}
-        param['timestep'] = timestep
-        for p in model.rc_parameter:
-            param[p] = getattr(model, p)
-
-        if parameter['type'] == 'R1C1':
-            res_temps = rcModel.R1C1(1, Ti_p, To, Qi_ext, param)
-        elif parameter['type'] == 'R2C2':
-            res_temps = rcModel.R2C2(1, Ti_p, Ts_p, To, Qi_ext, Qs_ext, param)
-        elif parameter['type'] == 'R4C2':
-            res_temps = rcModel.R4C2(1, Ti_p, Ts_p, To, Qw1_ext, Qw2_ext,
-                                        Qi_ext, Qs_ext, param)
-        elif parameter['type'] == 'R5C2':
-            # disable wall C and R
-            Tw_p = Ts_p
-            Qw_ext = 0
-            param['Riw'] = 1e6
-            param['Cw'] = 0
-            res_temps = rcModel.R6C3(1, Ti_p, Ts_p, Tw_p, To, Qw1_ext, Qw2_ext,
-                                        Qi_ext, Qs_ext, Qw_ext, param)[:2]
-        elif parameter['type'] in ['R5C3', 'R6C3']:
-            # include wind
-            # param['Row1'] = param['Row1'] * model.how1[ts]
-            # param['Row1'] = model.how1[ts]
-            if parameter['type'] == 'R6C3':
-                # param['Roi'] = model.Roi
-                # include wind
-                # param['Roi'] = param['Roi'] * model.how1[ts]
-                res_temps = rcModel.R6C3(1, Ti_p, Ts_p, Tw_p, To, Qw1_ext, Qw2_ext,
-                                            Qi_ext, Qs_ext, Qw_ext, param)
-            res_temps = rcModel.R5C3(1, Ti_p, Ts_p, Tw_p, To, Qw1_ext, Qw2_ext,
-                                     Qi_ext, Qs_ext, Qw_ext, param)
-        else:
-            raise ValueError(f'RC model type {parameter["type"]} not supported.')
-        return model.zone_temp[ts, temps] == res_temps[temps]
     model.constraint_zone_temp = Constraint(model.ts,
                                             model.temps,
                                             rule=zone_temp,
@@ -281,9 +240,9 @@ def model(inputs, parameter):
         if 'weight_twall' in par.keys():
             obj += model.mse_twall * par['weight_twall']
             print('Adding TWall to objective')
-        if 'weight_Qw2i' in par.keys():
-            obj += model.mse_Qw2i * par['weight_Qw2i']
-            print('Adding Qw2i to objective')
+        # if 'weight_Qw2i' in par.keys():
+        #     obj += model.mse_Qw2i * par['weight_Qw2i']
+        #     print('Adding Qw2i to objective')
         return obj
     model.objective = Objective(rule=objective_function,
                                 sense=minimize,

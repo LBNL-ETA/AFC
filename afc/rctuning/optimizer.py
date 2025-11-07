@@ -21,7 +21,7 @@ from doper.utility import standard_report
 from doper.wrapper import DOPER
 from .optModel import model
 from .utility import convert_rc_parameter
-from .defaultConfig import get_rc_parameter, INPUTS_DESCRIPTION
+from .defaultConfig import get_rc_parameter, INPUTS_DESCRIPTION, TEMPERATURES
 
 try:
     from pyDOE import lhs
@@ -40,6 +40,7 @@ def optimize_param(inputs, parameter, printing=True, model=model):
     #     print('WARNING: The "ipopt.opt" file does not exist.')
 
     # do optmization
+    parameter['param'] = parameter # match afc levels
     rctuner = DOPER(model=model,
                     parameter=parameter,
                     solver_path=parameter['solver_path'],
@@ -76,6 +77,8 @@ def do_tuning(inputs, parameter, printing=True, lhs_samples=5, seed=1,
     duration, objective, df, model, result, termination, parameter = res
 
     # store outputs
+    if 'param' in parameter:
+        del parameter['param']
     for k,v in rc_converter(model, print_new=False).items():
         res_lhs.loc[i, k] = v
     res_lhs.loc[i, 'duration'] = duration
@@ -88,7 +91,7 @@ def do_tuning(inputs, parameter, printing=True, lhs_samples=5, seed=1,
 
         if not PYDOE_LOADED:
             print('ERROR: pyDOE not loaded; no lhs executed.')
-        if lhs_samples > 1 and PYDOE_LOADED:
+        elif lhs_samples > 1:
             pars = [k for k,v in parameter.items() if isinstance(v, dict) \
                     and not k in ['objective', 'output_list',
                                   'solver_options', 'solver_path']]
@@ -127,7 +130,7 @@ def do_tuning(inputs, parameter, printing=True, lhs_samples=5, seed=1,
 class RcTuning:
     '''rc tuning class'''
 
-    def __init__(self, horizon=2*24*60*60, rctype='R4C2', mode='sepSlab', has_windows=True,
+    def __init__(self, horizon=2*24*60*60, rctype='R4C2', mode='allSplit', has_windows=True,
                  lhs_samples=False, fix_c=False, dampen_param=False, first_free=True,
                  first_dampen=False, printing=False, model=model,
                  rc_converter=convert_rc_parameter, resample=None,
@@ -193,6 +196,11 @@ class RcTuning:
         # resample
         if self.resample:
             inputs = inputs.resample(self.resample).mean()
+
+        # shift temperatures 1 step later for afc
+        for c in TEMPERATURES:
+            inputs[c] = inputs[c].shift(1)
+        inputs = inputs.iloc[1:]
 
         # select inputs for horizon
         inputs = inputs.loc[inputs.index[-1]-pd.DateOffset(seconds=self.horizon):].copy()

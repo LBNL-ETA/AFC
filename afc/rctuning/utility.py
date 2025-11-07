@@ -64,12 +64,12 @@ def plot_standard1(df, plot=True, tight=True):
     fig, axs = plt.subplots(n,1, figsize=(12, n*3), sharex=True, sharey=False,
                             gridspec_kw={'width_ratios':[1]})
     axs = axs.ravel()
-    plot_streams(axs[0], df[['Temperature 0 [C]','Measured Room Temperature [C]']])
-    plot_streams(axs[1], df[['Temperature 1 [C]','Measured Slab Temperature [C]']])
+    plot_streams(axs[0], df[['Temperature 0 [C]', 'Measured Room Temperature [C]']])
+    plot_streams(axs[1], df[['Temperature 1 [C]', 'Measured Wall Temperature [C]']])
     if 'Temperature 2 [C]' in df.columns:
-        plot_streams(axs[2], df[['Temperature 2 [C]','Measured Wall Temperature [C]']])
-    plot_streams(axs[3], df[['Convective Internal Gains [W]','Radiative Internal Gains [W]']])
-    plot_streams(axs[4], df[['Window Absorption 1 [W]','Window Absorption 2 [W]']])
+        plot_streams(axs[2], df[['Temperature 2 [C]', 'Measured Slab Temperature [C]']])
+    plot_streams(axs[3], df[['Convective Internal Gains [W]', 'Radiative Internal Gains [W]']])
+    plot_streams(axs[4], df[['Window Absorption 1 [W]', 'Window Absorption 2 [W]']])
     plot_streams(axs[5], df[['Outside Air Temperature [C]']])
     #plot_streams(axs[6], df[['Window Heat Transfer Coefficient [W/K]']])
     if plot:

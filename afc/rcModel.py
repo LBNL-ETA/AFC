@@ -4,306 +4,804 @@
 # from the U.S. Dept. of Energy). All rights reserved.
 
 """"Advanced Fenestration Controller
-Reduced order thermal model.
-
-This script contains the most up to date version of the RCModel used to 
-describe the building in electrochromic (EC) windows model predictive control
-(MPC) simulations. Here are some important pieces of nomenclature for
-understanding these models:
-    
-R = Resistance
-C = Capacitance
-Q = Heat addition, representing gains
-Subscript w = wall and refers to exterior walls
-Subscript w# = window, with 1 referring to the interior pane of a window
-    and 2 referring the exterior pane of a window
-Subscript s = slab
-Subscript o = outdoor
-Subscript i = indoor
-Subscript p = Previous. E.g. "Ti_p" = Indoor temperature at the previous
-    timestep
-Subscript ext = ???? (E.g. def R1C1(i, Ti_p, To, Qi_ext, param):)
-i = Current time (Not just an index)
+Reduced-order module (auto-generated).
 """
 
 # pylint: disable=invalid-name, too-many-arguments, too-many-locals, too-many-statements
 # pylint: disable=too-many-positional-arguments
 
-RCTYPES = ['R1C1', 'R2C2', 'R4C2', 'R5C3', 'R6C3']
+RCTYPES = ["R1C1", "R2C2", "R4C2", "R5C3", "R6C3", "R7C4"]
 
 def R1C1(i, Ti_p, To, Qi_ext, param):
-    """Function for RC model considering indoor, outdoor conditions.
+    '''Auto-generated reduced-order R1C1 model.'''
 
-    i = Time
-    Ti_p = previous/initial indoor temperature
-    To = Outdoor temperature
-    Qi_ext = Indoor space heat gains
-    param = Dictionary of parameters defining R & C values
-    """
+    # parsing parameter
+    timestep = param["timestep"]
+    Rw2i = param["Rw2i"]
+    Ci = param["Ci"] / timestep
 
-    timestep = param['timestep'] #Read the timestep from param
-    R1 = param['Rw2i'] #Resistance between the outside and the inside
-    C1 = param['Ci'] / timestep #Ci = Capacitance inside
+    # initialization
+    if i == 0:
+        return [Ti_p]
 
-    if i == 0: #If calculating at time = 0
-        return Ti_p #Return initial indoor temperature
+    # model equations
+    Ti = ((Ci*Rw2i*Ti_p
+        + Qi_ext*Rw2i
+        + To)/(Ci*Rw2i
+        + 1))
 
-    #If not the first timestep
-    Ti = (R1*Qi_ext + R1*C1*Ti_p + To) / (1 + R1*C1) #Calculate indoor
-    #temperature at the next time step using R1C1 model
-    return [Ti] #Return the calculated indoor temperature at this timestep
+    return [Ti]
 
-def R2C2(i, T1_prev, T2_prev, T_out, Q1_ext, Q2_ext, param):
-    """Function for RC model considering indoor, outdoor, slab conditions.
-    Internal gains applied to both indoor and slab
+def R2C2(i, Ti_p, Tw_p, To, Qi_ext, Qw_ext, param):
+    '''Auto-generated reduced-order R2C2 model.'''
 
-    T1 = indoor air temperature
-    T2 = slab temperatue
-    T_out = outdoor temperature
-    Q1_ext = internal gains in space
-    Q2_ext = internal gains in slab
-    """
+    # parsing parameter
+    timestep = param["timestep"]
+    Rw2i = param["Rw2i"]
+    Riw = param["Riw"]
+    Ci = param["Ci"] / timestep
+    Cw = param["Cw"] / timestep
 
-    timestep = param['timestep'] #Read the timestep
-    R1 = param['Rw2i'] #Read the resistane between indoor and outdoor
-    C1 = param['Ci'] / timestep #Calculate the indoor air C/dt
-    R2 = param['Ris'] #Read the resistance between indoor and the slab
-    C2 = param['Cs'] / timestep #Calculate the slab C/dt
+    # initialization
+    if i == 0:
+        return [Ti_p, Tw_p]
 
-    if i == 0: #If time = 0
-        return T1_prev, T2_prev #Return initial temperatures of indoor, slab
+    # model equations
+    Ti = ((Ci*Cw*Riw*Rw2i*Ti_p
+        + Ci*Rw2i*Ti_p
+        + Cw*Qi_ext*Riw*Rw2i
+        + Cw*Riw*To
+        + Cw*Rw2i*Tw_p
+        + Qi_ext*Rw2i
+        + Qw_ext*Rw2i
+        + To)/(Ci*Cw*Riw*Rw2i
+        + Ci*Rw2i
+        + Cw*Riw
+        + Cw*Rw2i
+        + 1))
+    Tw = ((Ci*Cw*Riw*Rw2i*Tw_p
+        + Ci*Qw_ext*Riw*Rw2i
+        + Ci*Rw2i*Ti_p
+        + Cw*Riw*Tw_p
+        + Cw*Rw2i*Tw_p
+        + Qi_ext*Rw2i
+        + Qw_ext*Riw
+        + Qw_ext*Rw2i
+        + To)/(Ci*Cw*Riw*Rw2i
+        + Ci*Rw2i
+        + Cw*Riw
+        + Cw*Rw2i
+        + 1))
 
-    #If not first time step perform calculations
-    a = C1*C2*R1*R2*T2_prev
-    a += C1*Q2_ext*R1*R2
-    a += C1*R1*T1_prev
-    a += C2*R1*T2_prev
-    a += C2*R2*T2_prev
-    a += Q1_ext*R1
-    a += Q2_ext*R1
-    a += Q2_ext*R2
+    return [Ti, Tw]
 
-    b = C1*C2*R1*R2
-    b += C1*R1
-    b += C2*R1
-    b += C2*R2
+def R4C2(i, Ti_p, Tw_p, To, Qw1_ext, Qw2_ext, Qi_ext, Qw_ext, param):
+    '''Auto-generated reduced-order R4C2 model.'''
 
-    T2 = (a + T_out) / (b + 1) #Calculate final slab temperature
-    T1 = C2*R2*T2 - C2*R2*T2_prev - Q2_ext*R2 + T2 #Calculate final indoor
-    #temperature
-    return T1, T2 #Return indoor and slab temperatures
+    # parsing parameter
+    timestep = param["timestep"]
+    Rw2i = param["Rw2i"]
+    Row1 = param["Row1"]
+    Riw = param["Riw"]
+    Rw1w2 = param["Rw1w2"]
+    Ci = param["Ci"] / timestep
+    Cw = param["Cw"] / timestep
 
-def R4C2(i, Ti_p, Ts_p, To, Qw1_ext, Qw2_ext, Qi_ext, Qs_ext, param):
-    """Function for RC model considering indoor, outdoor, slab, and a window.
-    Internal gains applied to indoor, slab, 2x window panes
+    # initialization
+    if i == 0:
+        return [Ti_p, Tw_p]
 
-    i = Time
-    Ti_p = Previous/initial indoor temperature
-    Ts_p = Previous/initial slab temperature
-    To = Outdoor temperature
-    Qw1_ext = Heat gain in the external window pane
-    Qw2_ext = Heat gain in the internal window pane
-    Qi_ext = Indoor space heat gains
-    Qs_ext = Slab heat gains
-    param = Dictionary of parameters defining R & C values
-    """
+    # model equations
+    Ti = ((Ci*Cw*Riw*Row1*Ti_p
+        + Ci*Cw*Riw*Rw1w2*Ti_p
+        + Ci*Cw*Riw*Rw2i*Ti_p
+        + Ci*Row1*Ti_p
+        + Ci*Rw1w2*Ti_p
+        + Ci*Rw2i*Ti_p
+        + Cw*Qi_ext*Riw*Row1
+        + Cw*Qi_ext*Riw*Rw1w2
+        + Cw*Qi_ext*Riw*Rw2i
+        + Cw*Qw1_ext*Riw*Row1
+        + Cw*Qw2_ext*Riw*Row1
+        + Cw*Qw2_ext*Riw*Rw1w2
+        + Cw*Riw*To
+        + Cw*Row1*Tw_p
+        + Cw*Rw1w2*Tw_p
+        + Cw*Rw2i*Tw_p
+        + Qi_ext*Row1
+        + Qi_ext*Rw1w2
+        + Qi_ext*Rw2i
+        + Qw1_ext*Row1
+        + Qw2_ext*Row1
+        + Qw2_ext*Rw1w2
+        + Qw_ext*Row1
+        + Qw_ext*Rw1w2
+        + Qw_ext*Rw2i
+        + To)/(Ci*Cw*Riw*Row1
+        + Ci*Cw*Riw*Rw1w2
+        + Ci*Cw*Riw*Rw2i
+        + Ci*Row1
+        + Ci*Rw1w2
+        + Ci*Rw2i
+        + Cw*Riw
+        + Cw*Row1
+        + Cw*Rw1w2
+        + Cw*Rw2i
+        + 1))
+    Tw = ((Ci*Cw*Riw*Row1*Tw_p
+        + Ci*Cw*Riw*Rw1w2*Tw_p
+        + Ci*Cw*Riw*Rw2i*Tw_p
+        + Ci*Qw_ext*Riw*Row1
+        + Ci*Qw_ext*Riw*Rw1w2
+        + Ci*Qw_ext*Riw*Rw2i
+        + Ci*Row1*Ti_p
+        + Ci*Rw1w2*Ti_p
+        + Ci*Rw2i*Ti_p
+        + Cw*Riw*Tw_p
+        + Cw*Row1*Tw_p
+        + Cw*Rw1w2*Tw_p
+        + Cw*Rw2i*Tw_p
+        + Qi_ext*Row1
+        + Qi_ext*Rw1w2
+        + Qi_ext*Rw2i
+        + Qw1_ext*Row1
+        + Qw2_ext*Row1
+        + Qw2_ext*Rw1w2
+        + Qw_ext*Riw
+        + Qw_ext*Row1
+        + Qw_ext*Rw1w2
+        + Qw_ext*Rw2i
+        + To)/(Ci*Cw*Riw*Row1
+        + Ci*Cw*Riw*Rw1w2
+        + Ci*Cw*Riw*Rw2i
+        + Ci*Row1
+        + Ci*Rw1w2
+        + Ci*Rw2i
+        + Cw*Riw
+        + Cw*Row1
+        + Cw*Rw1w2
+        + Cw*Rw2i
+        + 1))
 
-    timestep = param['timestep'] #Read the timestep
-    Row1 = param['Row1'] #Read the resistance between outdoor and window 1
-    Rw1w2 = param['Rw1w2'] #Read the resistance between windows 1 and 2
-    Rw2i = param['Rw2i'] #Read the resistance between window 2 and indoor
-    Ci = param['Ci'] / timestep #Calculate the indoor C/dt
-    Ris = param['Ris'] #Read the resistance between indoor and slab
-    Cs = param['Cs'] / timestep #Calculate the slab C/dt
+    return [Ti, Tw]
 
-    if i == 0: #If time = 0
-        return Ti_p, Ts_p #Return initial indoor and slab temperatures
+def R5C3(i, Ti_p, Tw_p, Ts_p, To, Qw1_ext, Qw2_ext, Qi_ext, Qw_ext, Qs_ext, param):
+    '''Auto-generated reduced-order R5C3 model.'''
 
-    #If not first timestep, perform calculations
-    a = Ci*Cs*Ris*Row1*Ts_p
-    a += Ci*Cs*Ris*Rw1w2*Ts_p
-    a += Ci*Cs*Ris*Rw2i*Ts_p
-    a += Ci*Qs_ext*Ris*Row1
-    a += Ci*Qs_ext*Ris*Rw1w2
-    a += Ci*Qs_ext*Ris*Rw2i
-    a += Ci*Row1*Ti_p + Ci*Rw1w2*Ti_p
-    a += Ci*Rw2i*Ti_p + Cs*Ris*Ts_p
-    a += Cs*Row1*Ts_p + Cs*Rw1w2*Ts_p
-    a += Cs*Rw2i*Ts_p + Qi_ext*Row1
-    a += Qi_ext*Rw1w2 + Qi_ext*Rw2i
-    a += Qs_ext*Ris + Qs_ext*Row1
-    a += Qs_ext*Rw1w2 + Qs_ext*Rw2i
-    a += Qw1_ext*Row1 + Qw2_ext*Row1
-    a += Qw2_ext*Rw1w2 + To
+    # parsing parameter
+    timestep = param["timestep"]
+    Rw2i = param["Rw2i"]
+    Row1 = param["Row1"]
+    Ris = param["Ris"]
+    Riw = param["Riw"]
+    Rw1w2 = param["Rw1w2"]
+    Cs = param["Cs"] / timestep
+    Ci = param["Ci"] / timestep
+    Cw = param["Cw"] / timestep
 
-    b = Ci*Cs*Ris*Row1
-    b += Ci*Cs*Ris*Rw1w2
-    b += Ci*Cs*Ris*Rw2i
-    b += Ci*Row1 + Ci*Rw1w2
-    b += Ci*Rw2i + Cs*Ris
-    b += Cs*Row1 + Cs*Rw1w2
-    b += Cs*Rw2i + 1
+    # initialization
+    if i == 0:
+        return [Ti_p, Tw_p, Ts_p]
 
-    Ts = a / b #Calculate slab temperature
-    Ti = Cs*Ris*Ts - Cs*Ris*Ts_p - Qs_ext*Ris + Ts #Calculate indoor temp
-    return Ti, Ts #Return indoor and slab temperatures
+    # model equations
+    Ti = ((Ci*Cs*Cw*Ris*Riw*Row1*Ti_p
+        + Ci*Cs*Cw*Ris*Riw*Rw1w2*Ti_p
+        + Ci*Cs*Cw*Ris*Riw*Rw2i*Ti_p
+        + Ci*Cs*Ris*Row1*Ti_p
+        + Ci*Cs*Ris*Rw1w2*Ti_p
+        + Ci*Cs*Ris*Rw2i*Ti_p
+        + Ci*Cw*Riw*Row1*Ti_p
+        + Ci*Cw*Riw*Rw1w2*Ti_p
+        + Ci*Cw*Riw*Rw2i*Ti_p
+        + Ci*Row1*Ti_p
+        + Ci*Rw1w2*Ti_p
+        + Ci*Rw2i*Ti_p
+        + Cs*Cw*Qi_ext*Ris*Riw*Row1
+        + Cs*Cw*Qi_ext*Ris*Riw*Rw1w2
+        + Cs*Cw*Qi_ext*Ris*Riw*Rw2i
+        + Cs*Cw*Qw1_ext*Ris*Riw*Row1
+        + Cs*Cw*Qw2_ext*Ris*Riw*Row1
+        + Cs*Cw*Qw2_ext*Ris*Riw*Rw1w2
+        + Cs*Cw*Ris*Riw*To
+        + Cs*Cw*Ris*Row1*Tw_p
+        + Cs*Cw*Ris*Rw1w2*Tw_p
+        + Cs*Cw*Ris*Rw2i*Tw_p
+        + Cs*Cw*Riw*Row1*Ts_p
+        + Cs*Cw*Riw*Rw1w2*Ts_p
+        + Cs*Cw*Riw*Rw2i*Ts_p
+        + Cs*Qi_ext*Ris*Row1
+        + Cs*Qi_ext*Ris*Rw1w2
+        + Cs*Qi_ext*Ris*Rw2i
+        + Cs*Qw1_ext*Ris*Row1
+        + Cs*Qw2_ext*Ris*Row1
+        + Cs*Qw2_ext*Ris*Rw1w2
+        + Cs*Qw_ext*Ris*Row1
+        + Cs*Qw_ext*Ris*Rw1w2
+        + Cs*Qw_ext*Ris*Rw2i
+        + Cs*Ris*To
+        + Cs*Row1*Ts_p
+        + Cs*Rw1w2*Ts_p
+        + Cs*Rw2i*Ts_p
+        + Cw*Qi_ext*Riw*Row1
+        + Cw*Qi_ext*Riw*Rw1w2
+        + Cw*Qi_ext*Riw*Rw2i
+        + Cw*Qs_ext*Riw*Row1
+        + Cw*Qs_ext*Riw*Rw1w2
+        + Cw*Qs_ext*Riw*Rw2i
+        + Cw*Qw1_ext*Riw*Row1
+        + Cw*Qw2_ext*Riw*Row1
+        + Cw*Qw2_ext*Riw*Rw1w2
+        + Cw*Riw*To
+        + Cw*Row1*Tw_p
+        + Cw*Rw1w2*Tw_p
+        + Cw*Rw2i*Tw_p
+        + Qi_ext*Row1
+        + Qi_ext*Rw1w2
+        + Qi_ext*Rw2i
+        + Qs_ext*Row1
+        + Qs_ext*Rw1w2
+        + Qs_ext*Rw2i
+        + Qw1_ext*Row1
+        + Qw2_ext*Row1
+        + Qw2_ext*Rw1w2
+        + Qw_ext*Row1
+        + Qw_ext*Rw1w2
+        + Qw_ext*Rw2i
+        + To)/(Ci*Cs*Cw*Ris*Riw*Row1
+        + Ci*Cs*Cw*Ris*Riw*Rw1w2
+        + Ci*Cs*Cw*Ris*Riw*Rw2i
+        + Ci*Cs*Ris*Row1
+        + Ci*Cs*Ris*Rw1w2
+        + Ci*Cs*Ris*Rw2i
+        + Ci*Cw*Riw*Row1
+        + Ci*Cw*Riw*Rw1w2
+        + Ci*Cw*Riw*Rw2i
+        + Ci*Row1
+        + Ci*Rw1w2
+        + Ci*Rw2i
+        + Cs*Cw*Ris*Riw
+        + Cs*Cw*Ris*Row1
+        + Cs*Cw*Ris*Rw1w2
+        + Cs*Cw*Ris*Rw2i
+        + Cs*Cw*Riw*Row1
+        + Cs*Cw*Riw*Rw1w2
+        + Cs*Cw*Riw*Rw2i
+        + Cs*Ris
+        + Cs*Row1
+        + Cs*Rw1w2
+        + Cs*Rw2i
+        + Cw*Riw
+        + Cw*Row1
+        + Cw*Rw1w2
+        + Cw*Rw2i
+        + 1))
+    Tw = ((Cw*Riw*Tw_p
+        + Qw_ext*Riw
+        + Ti)/(Cw*Riw
+        + 1))
+    Ts = ((Cs*Ris*Ts_p
+        + Qs_ext*Ris
+        + Ti)/(Cs*Ris
+        + 1))
 
-def R5C3(i, Ti_p, Ts_p, Tw_p, To, Qw1_ext, Qw2_ext,
-         Qi_ext, Qs_ext, Qw_ext, param):
-    """Function for RC model considering indoor, slab, 1 double-pane window, one wall.
-    Applying internal gains to both window panes, interior, slab, wall
+    return [Ti, Ts, Tw]
 
-    i = Time
-    Ti_p = Previous/initial indoor temperature
-    Ts_p = Previous/initial slab temperature
-    Tw_p = Previous/initial wall temperature
-    To = Outdoor temperature
-    Qw1_ext = Heat gain in the external window pane
-    Qw2_ext = Heat gain in the internal window pane
-    Qi_ext = Indoor space heat gains
-    Qs_ext = Slab heat gains
-    Qw_ext = Wall heat gains
-    param = Dictionary of parameters defining R & C values
-    """
+def R6C3(i, Ti_p, Tw_p, Ts_p, To, Qw1_ext, Qw2_ext, Qi_ext, Qw_ext, Qs_ext, param):
+    '''Auto-generated reduced-order R6C3 model.'''
 
-    timestep = param['timestep'] #Read timestep
-    Row1 = param['Row1'] #Read resistance of the outdoor window pane
-    Rw1w2 = param['Rw1w2'] #Read resistance between the window panes
-    Rw2i = param['Rw2i'] #Read resistance of the indoor window pane
-    Ci = param['Ci'] / timestep #Calculate indoor C/dt
-    Ris = param['Ris'] #Read resistance between indoor and slab
-    Cs = param['Cs'] / timestep #Calculate slab C/dt
-    Riw = param['Riw'] #Read resistance between indoor and wall
-    Cw = param['Cw'] / timestep #Calculate wall C/dt
+    # parsing parameter
+    timestep = param["timestep"]
+    Rw2i = param["Rw2i"]
+    Row1 = param["Row1"]
+    Ris = param["Ris"]
+    Roi = param["Roi"]
+    Riw = param["Riw"]
+    Rw1w2 = param["Rw1w2"]
+    Cs = param["Cs"] / timestep
+    Ci = param["Ci"] / timestep
+    Cw = param["Cw"] / timestep
 
-    if i == 0: #If time = 0
-        return Ti_p, Ts_p, Tw_p #Return indoor, slab, wall temperatures
+    # initialization
+    if i == 0:
+        return [Ti_p, Tw_p, Ts_p]
 
-    #If not first timestep perform calculations
-    a = Ci*Cs*Cw*Ris*Riw*Row1*Ts_p + Ci*Cs*Cw*Ris*Riw*Rw1w2*Ts_p
-    a += Ci*Cs*Cw*Ris*Riw*Rw2i*Ts_p + Ci*Cs*Ris*Row1*Ts_p
-    a += Ci*Cs*Ris*Rw1w2*Ts_p + Ci*Cs*Ris*Rw2i*Ts_p
-    a += Ci*Cw*Qs_ext*Ris*Riw*Row1 + Ci*Cw*Qs_ext*Ris*Riw*Rw1w2
-    a += Ci*Cw*Qs_ext*Ris*Riw*Rw2i + Ci*Cw*Riw*Row1*Ti_p
-    a += Ci*Cw*Riw*Rw1w2*Ti_p + Ci*Cw*Riw*Rw2i*Ti_p
-    a += Ci*Qs_ext*Ris*Row1 + Ci*Qs_ext*Ris*Rw1w2
-    a += Ci*Qs_ext*Ris*Rw2i + Ci*Row1*Ti_p + Ci*Rw1w2*Ti_p
-    a += Ci*Rw2i*Ti_p + Cs*Cw*Ris*Riw*Ts_p + Cs*Cw*Ris*Row1*Ts_p
-    a += Cs*Cw*Ris*Rw1w2*Ts_p + Cs*Cw*Ris*Rw2i*Ts_p
-    a += Cs*Cw*Riw*Row1*Ts_p + Cs*Cw*Riw*Rw1w2*Ts_p
-    a += Cs*Cw*Riw*Rw2i*Ts_p + Cs*Ris*Ts_p
-    a += Cs*Row1*Ts_p + Cs*Rw1w2*Ts_p + Cs*Rw2i*Ts_p
-    a += Cw*Qi_ext*Riw*Row1 + Cw*Qi_ext*Riw*Rw1w2
-    a += Cw*Qi_ext*Riw*Rw2i + Cw*Qs_ext*Ris*Riw
-    a += Cw*Qs_ext*Ris*Row1 + Cw*Qs_ext*Ris*Rw1w2
-    a += Cw*Qs_ext*Ris*Rw2i + Cw*Qs_ext*Riw*Row1
-    a += Cw*Qs_ext*Riw*Rw1w2 + Cw*Qs_ext*Riw*Rw2i
-    a += Cw*Qw1_ext*Riw*Row1 + Cw*Qw2_ext*Riw*Row1
-    a += Cw*Qw2_ext*Riw*Rw1w2 + Cw*Riw*To + Cw*Row1*Tw_p
-    a += Cw*Rw1w2*Tw_p + Cw*Rw2i*Tw_p + Qi_ext*Row1
-    a += Qi_ext*Rw1w2 + Qi_ext*Rw2i + Qs_ext*Ris
-    a += Qs_ext*Row1 + Qs_ext*Rw1w2 + Qs_ext*Rw2i
-    a += Qw1_ext*Row1 + Qw2_ext*Row1 + Qw2_ext*Rw1w2
-    a += Qw_ext*Row1 + Qw_ext*Rw1w2 + Qw_ext*Rw2i + To
+    # model equations
+    Ti = ((Ci*Cs*Cw*Ris*Riw*Roi*Row1*Ti_p
+        + Ci*Cs*Cw*Ris*Riw*Roi*Rw1w2*Ti_p
+        + Ci*Cs*Cw*Ris*Riw*Roi*Rw2i*Ti_p
+        + Ci*Cs*Ris*Roi*Row1*Ti_p
+        + Ci*Cs*Ris*Roi*Rw1w2*Ti_p
+        + Ci*Cs*Ris*Roi*Rw2i*Ti_p
+        + Ci*Cw*Riw*Roi*Row1*Ti_p
+        + Ci*Cw*Riw*Roi*Rw1w2*Ti_p
+        + Ci*Cw*Riw*Roi*Rw2i*Ti_p
+        + Ci*Roi*Row1*Ti_p
+        + Ci*Roi*Rw1w2*Ti_p
+        + Ci*Roi*Rw2i*Ti_p
+        + Cs*Cw*Qi_ext*Ris*Riw*Roi*Row1
+        + Cs*Cw*Qi_ext*Ris*Riw*Roi*Rw1w2
+        + Cs*Cw*Qi_ext*Ris*Riw*Roi*Rw2i
+        + Cs*Cw*Qw1_ext*Ris*Riw*Roi*Row1
+        + Cs*Cw*Qw2_ext*Ris*Riw*Roi*Row1
+        + Cs*Cw*Qw2_ext*Ris*Riw*Roi*Rw1w2
+        + Cs*Cw*Ris*Riw*Roi*To
+        + Cs*Cw*Ris*Riw*Row1*To
+        + Cs*Cw*Ris*Riw*Rw1w2*To
+        + Cs*Cw*Ris*Riw*Rw2i*To
+        + Cs*Cw*Ris*Roi*Row1*Tw_p
+        + Cs*Cw*Ris*Roi*Rw1w2*Tw_p
+        + Cs*Cw*Ris*Roi*Rw2i*Tw_p
+        + Cs*Cw*Riw*Roi*Row1*Ts_p
+        + Cs*Cw*Riw*Roi*Rw1w2*Ts_p
+        + Cs*Cw*Riw*Roi*Rw2i*Ts_p
+        + Cs*Qi_ext*Ris*Roi*Row1
+        + Cs*Qi_ext*Ris*Roi*Rw1w2
+        + Cs*Qi_ext*Ris*Roi*Rw2i
+        + Cs*Qw1_ext*Ris*Roi*Row1
+        + Cs*Qw2_ext*Ris*Roi*Row1
+        + Cs*Qw2_ext*Ris*Roi*Rw1w2
+        + Cs*Qw_ext*Ris*Roi*Row1
+        + Cs*Qw_ext*Ris*Roi*Rw1w2
+        + Cs*Qw_ext*Ris*Roi*Rw2i
+        + Cs*Ris*Roi*To
+        + Cs*Ris*Row1*To
+        + Cs*Ris*Rw1w2*To
+        + Cs*Ris*Rw2i*To
+        + Cs*Roi*Row1*Ts_p
+        + Cs*Roi*Rw1w2*Ts_p
+        + Cs*Roi*Rw2i*Ts_p
+        + Cw*Qi_ext*Riw*Roi*Row1
+        + Cw*Qi_ext*Riw*Roi*Rw1w2
+        + Cw*Qi_ext*Riw*Roi*Rw2i
+        + Cw*Qs_ext*Riw*Roi*Row1
+        + Cw*Qs_ext*Riw*Roi*Rw1w2
+        + Cw*Qs_ext*Riw*Roi*Rw2i
+        + Cw*Qw1_ext*Riw*Roi*Row1
+        + Cw*Qw2_ext*Riw*Roi*Row1
+        + Cw*Qw2_ext*Riw*Roi*Rw1w2
+        + Cw*Riw*Roi*To
+        + Cw*Riw*Row1*To
+        + Cw*Riw*Rw1w2*To
+        + Cw*Riw*Rw2i*To
+        + Cw*Roi*Row1*Tw_p
+        + Cw*Roi*Rw1w2*Tw_p
+        + Cw*Roi*Rw2i*Tw_p
+        + Qi_ext*Roi*Row1
+        + Qi_ext*Roi*Rw1w2
+        + Qi_ext*Roi*Rw2i
+        + Qs_ext*Roi*Row1
+        + Qs_ext*Roi*Rw1w2
+        + Qs_ext*Roi*Rw2i
+        + Qw1_ext*Roi*Row1
+        + Qw2_ext*Roi*Row1
+        + Qw2_ext*Roi*Rw1w2
+        + Qw_ext*Roi*Row1
+        + Qw_ext*Roi*Rw1w2
+        + Qw_ext*Roi*Rw2i
+        + Roi*To
+        + Row1*To
+        + Rw1w2*To
+        + Rw2i*To)/(Ci*Cs*Cw*Ris*Riw*Roi*Row1
+        + Ci*Cs*Cw*Ris*Riw*Roi*Rw1w2
+        + Ci*Cs*Cw*Ris*Riw*Roi*Rw2i
+        + Ci*Cs*Ris*Roi*Row1
+        + Ci*Cs*Ris*Roi*Rw1w2
+        + Ci*Cs*Ris*Roi*Rw2i
+        + Ci*Cw*Riw*Roi*Row1
+        + Ci*Cw*Riw*Roi*Rw1w2
+        + Ci*Cw*Riw*Roi*Rw2i
+        + Ci*Roi*Row1
+        + Ci*Roi*Rw1w2
+        + Ci*Roi*Rw2i
+        + Cs*Cw*Ris*Riw*Roi
+        + Cs*Cw*Ris*Riw*Row1
+        + Cs*Cw*Ris*Riw*Rw1w2
+        + Cs*Cw*Ris*Riw*Rw2i
+        + Cs*Cw*Ris*Roi*Row1
+        + Cs*Cw*Ris*Roi*Rw1w2
+        + Cs*Cw*Ris*Roi*Rw2i
+        + Cs*Cw*Riw*Roi*Row1
+        + Cs*Cw*Riw*Roi*Rw1w2
+        + Cs*Cw*Riw*Roi*Rw2i
+        + Cs*Ris*Roi
+        + Cs*Ris*Row1
+        + Cs*Ris*Rw1w2
+        + Cs*Ris*Rw2i
+        + Cs*Roi*Row1
+        + Cs*Roi*Rw1w2
+        + Cs*Roi*Rw2i
+        + Cw*Riw*Roi
+        + Cw*Riw*Row1
+        + Cw*Riw*Rw1w2
+        + Cw*Riw*Rw2i
+        + Cw*Roi*Row1
+        + Cw*Roi*Rw1w2
+        + Cw*Roi*Rw2i
+        + Roi
+        + Row1
+        + Rw1w2
+        + Rw2i))
+    Tw = ((Cw*Riw*Tw_p
+        + Qw_ext*Riw
+        + Ti)/(Cw*Riw
+        + 1))
+    Ts = ((Cs*Ris*Ts_p
+        + Qs_ext*Ris
+        + Ti)/(Cs*Ris
+        + 1))
 
-    b = Ci*Cs*Cw*Ris*Riw*Row1 + Ci*Cs*Cw*Ris*Riw*Rw1w2
-    b += Ci*Cs*Cw*Ris*Riw*Rw2i + Ci*Cs*Ris*Row1
-    b += Ci*Cs*Ris*Rw1w2 + Ci*Cs*Ris*Rw2i
-    b += Ci*Cw*Riw*Row1 + Ci*Cw*Riw*Rw1w2
-    b += Ci*Cw*Riw*Rw2i + Ci*Row1 + Ci*Rw1w2
-    b += Ci*Rw2i + Cs*Cw*Ris*Riw + Cs*Cw*Ris*Row1
-    b += Cs*Cw*Ris*Rw1w2 + Cs*Cw*Ris*Rw2i + Cs*Cw*Riw*Row1
-    b += Cs*Cw*Riw*Rw1w2 + Cs*Cw*Riw*Rw2i + Cs*Ris
-    b += Cs*Row1 + Cs*Rw1w2 + Cs*Rw2i + Cw*Riw
-    b += Cw*Row1 + Cw*Rw1w2 + Cw*Rw2i + 1
+    return [Ti, Ts, Tw]
 
-    Ts = a / b
-    Ti = Cs*Ris*Ts - Cs*Ris*Ts_p - Qs_ext*Ris + Ts
-    Tw = (Cw*Riw*Tw_p + Qw_ext*Riw + Ti) / (Cw*Riw + 1)
-    return Ti, Ts, Tw #Return indoor, slab, wall temperatures
+def R7C4(i, Ti_p, Tw_p, Ts_p, Tf_p, To, Qw1_ext, Qw2_ext, Qi_ext, Qw_ext, Qs_ext, Qf_ext, param):
+    '''Auto-generated reduced-order R7C4 model.'''
 
-def R6C3(i, Ti_p, Ts_p, Tw_p, To, Qw1_ext, Qw2_ext,
-         Qi_ext, Qs_ext, Qw_ext, param):
-    """Function for RC model considering indoor, slab, 1 double-pane window, one wall.
-    Applying internal gains to both window panes, interior, slab, wall
+    # parsing parameter
+    timestep = param["timestep"]
+    Rof = param["Rof"]
+    Rw2i = param["Rw2i"]
+    Ris = param["Ris"]
+    Rw1w2 = param["Rw1w2"]
+    Rfi = param["Rfi"]
+    Row1 = param["Row1"]
+    Riw = param["Riw"]
+    Cf = param["Cf"] / timestep
+    Cs = param["Cs"] / timestep
+    Ci = param["Ci"] / timestep
+    Cw = param["Cw"] / timestep
 
-    i = Time
-    Ti_p = Previous/initial indoor temperature
-    Ts_p = Previous/initial slab temperature
-    Tw_p = Previous/initial wall temperature
-    To = Outdoor temperature
-    Qw1_ext = Heat gain in the external window pane
-    Qw2_ext = Heat gain in the internal window pane
-    Qi_ext = Indoor space heat gains
-    Qs_ext = Slab heat gains
-    Qw_ext = Wall heat gains
-    param = Dictionary of parameters defining R & C values
-    """
+    # initialization
+    if i == 0:
+        return [Ti_p, Tw_p, Ts_p, Tf_p]
 
-    timestep = param['timestep'] #Read timestep
-    Roi = param['Roi'] #Read resistance between indoor and outdoor
-    Row1 = param['Row1'] #Read resistance between outdoor and window 1
-    Rw1w2 = param['Rw1w2'] #Read resistance...across both windows?
-    Rw2i = param['Rw2i'] #Read resistance between window 2 and indoor
-    Ci = param['Ci'] / timestep #Calculate indoor C/dt
-    Ris = param['Ris'] #Read resistance between slab and indoor
-    Cs = param['Cs'] / timestep #Calculate slab C/dt
-    Riw = param['Riw'] #Read resistance between indoor and wall
-    Cw = param['Cw'] / timestep #Calculate wall C/dt
+    # model equations
+    Ti = ((Cf*Ci*Cs*Cw*Rfi*Ris*Riw*Rof*Row1*Ti_p
+        + Cf*Ci*Cs*Cw*Rfi*Ris*Riw*Rof*Rw1w2*Ti_p
+        + Cf*Ci*Cs*Cw*Rfi*Ris*Riw*Rof*Rw2i*Ti_p
+        + Cf*Ci*Cs*Rfi*Ris*Rof*Row1*Ti_p
+        + Cf*Ci*Cs*Rfi*Ris*Rof*Rw1w2*Ti_p
+        + Cf*Ci*Cs*Rfi*Ris*Rof*Rw2i*Ti_p
+        + Cf*Ci*Cw*Rfi*Riw*Rof*Row1*Ti_p
+        + Cf*Ci*Cw*Rfi*Riw*Rof*Rw1w2*Ti_p
+        + Cf*Ci*Cw*Rfi*Riw*Rof*Rw2i*Ti_p
+        + Cf*Ci*Rfi*Rof*Row1*Ti_p
+        + Cf*Ci*Rfi*Rof*Rw1w2*Ti_p
+        + Cf*Ci*Rfi*Rof*Rw2i*Ti_p
+        + Cf*Cs*Cw*Qi_ext*Rfi*Ris*Riw*Rof*Row1
+        + Cf*Cs*Cw*Qi_ext*Rfi*Ris*Riw*Rof*Rw1w2
+        + Cf*Cs*Cw*Qi_ext*Rfi*Ris*Riw*Rof*Rw2i
+        + Cf*Cs*Cw*Qw1_ext*Rfi*Ris*Riw*Rof*Row1
+        + Cf*Cs*Cw*Qw2_ext*Rfi*Ris*Riw*Rof*Row1
+        + Cf*Cs*Cw*Qw2_ext*Rfi*Ris*Riw*Rof*Rw1w2
+        + Cf*Cs*Cw*Rfi*Ris*Riw*Rof*To
+        + Cf*Cs*Cw*Rfi*Ris*Rof*Row1*Tw_p
+        + Cf*Cs*Cw*Rfi*Ris*Rof*Rw1w2*Tw_p
+        + Cf*Cs*Cw*Rfi*Ris*Rof*Rw2i*Tw_p
+        + Cf*Cs*Cw*Rfi*Riw*Rof*Row1*Ts_p
+        + Cf*Cs*Cw*Rfi*Riw*Rof*Rw1w2*Ts_p
+        + Cf*Cs*Cw*Rfi*Riw*Rof*Rw2i*Ts_p
+        + Cf*Cs*Cw*Ris*Riw*Rof*Row1*Tf_p
+        + Cf*Cs*Cw*Ris*Riw*Rof*Rw1w2*Tf_p
+        + Cf*Cs*Cw*Ris*Riw*Rof*Rw2i*Tf_p
+        + Cf*Cs*Qi_ext*Rfi*Ris*Rof*Row1
+        + Cf*Cs*Qi_ext*Rfi*Ris*Rof*Rw1w2
+        + Cf*Cs*Qi_ext*Rfi*Ris*Rof*Rw2i
+        + Cf*Cs*Qw1_ext*Rfi*Ris*Rof*Row1
+        + Cf*Cs*Qw2_ext*Rfi*Ris*Rof*Row1
+        + Cf*Cs*Qw2_ext*Rfi*Ris*Rof*Rw1w2
+        + Cf*Cs*Qw_ext*Rfi*Ris*Rof*Row1
+        + Cf*Cs*Qw_ext*Rfi*Ris*Rof*Rw1w2
+        + Cf*Cs*Qw_ext*Rfi*Ris*Rof*Rw2i
+        + Cf*Cs*Rfi*Ris*Rof*To
+        + Cf*Cs*Rfi*Rof*Row1*Ts_p
+        + Cf*Cs*Rfi*Rof*Rw1w2*Ts_p
+        + Cf*Cs*Rfi*Rof*Rw2i*Ts_p
+        + Cf*Cs*Ris*Rof*Row1*Tf_p
+        + Cf*Cs*Ris*Rof*Rw1w2*Tf_p
+        + Cf*Cs*Ris*Rof*Rw2i*Tf_p
+        + Cf*Cw*Qi_ext*Rfi*Riw*Rof*Row1
+        + Cf*Cw*Qi_ext*Rfi*Riw*Rof*Rw1w2
+        + Cf*Cw*Qi_ext*Rfi*Riw*Rof*Rw2i
+        + Cf*Cw*Qs_ext*Rfi*Riw*Rof*Row1
+        + Cf*Cw*Qs_ext*Rfi*Riw*Rof*Rw1w2
+        + Cf*Cw*Qs_ext*Rfi*Riw*Rof*Rw2i
+        + Cf*Cw*Qw1_ext*Rfi*Riw*Rof*Row1
+        + Cf*Cw*Qw2_ext*Rfi*Riw*Rof*Row1
+        + Cf*Cw*Qw2_ext*Rfi*Riw*Rof*Rw1w2
+        + Cf*Cw*Rfi*Riw*Rof*To
+        + Cf*Cw*Rfi*Rof*Row1*Tw_p
+        + Cf*Cw*Rfi*Rof*Rw1w2*Tw_p
+        + Cf*Cw*Rfi*Rof*Rw2i*Tw_p
+        + Cf*Cw*Riw*Rof*Row1*Tf_p
+        + Cf*Cw*Riw*Rof*Rw1w2*Tf_p
+        + Cf*Cw*Riw*Rof*Rw2i*Tf_p
+        + Cf*Qi_ext*Rfi*Rof*Row1
+        + Cf*Qi_ext*Rfi*Rof*Rw1w2
+        + Cf*Qi_ext*Rfi*Rof*Rw2i
+        + Cf*Qs_ext*Rfi*Rof*Row1
+        + Cf*Qs_ext*Rfi*Rof*Rw1w2
+        + Cf*Qs_ext*Rfi*Rof*Rw2i
+        + Cf*Qw1_ext*Rfi*Rof*Row1
+        + Cf*Qw2_ext*Rfi*Rof*Row1
+        + Cf*Qw2_ext*Rfi*Rof*Rw1w2
+        + Cf*Qw_ext*Rfi*Rof*Row1
+        + Cf*Qw_ext*Rfi*Rof*Rw1w2
+        + Cf*Qw_ext*Rfi*Rof*Rw2i
+        + Cf*Rfi*Rof*To
+        + Cf*Rof*Row1*Tf_p
+        + Cf*Rof*Rw1w2*Tf_p
+        + Cf*Rof*Rw2i*Tf_p
+        + Ci*Cs*Cw*Rfi*Ris*Riw*Row1*Ti_p
+        + Ci*Cs*Cw*Rfi*Ris*Riw*Rw1w2*Ti_p
+        + Ci*Cs*Cw*Rfi*Ris*Riw*Rw2i*Ti_p
+        + Ci*Cs*Cw*Ris*Riw*Rof*Row1*Ti_p
+        + Ci*Cs*Cw*Ris*Riw*Rof*Rw1w2*Ti_p
+        + Ci*Cs*Cw*Ris*Riw*Rof*Rw2i*Ti_p
+        + Ci*Cs*Rfi*Ris*Row1*Ti_p
+        + Ci*Cs*Rfi*Ris*Rw1w2*Ti_p
+        + Ci*Cs*Rfi*Ris*Rw2i*Ti_p
+        + Ci*Cs*Ris*Rof*Row1*Ti_p
+        + Ci*Cs*Ris*Rof*Rw1w2*Ti_p
+        + Ci*Cs*Ris*Rof*Rw2i*Ti_p
+        + Ci*Cw*Rfi*Riw*Row1*Ti_p
+        + Ci*Cw*Rfi*Riw*Rw1w2*Ti_p
+        + Ci*Cw*Rfi*Riw*Rw2i*Ti_p
+        + Ci*Cw*Riw*Rof*Row1*Ti_p
+        + Ci*Cw*Riw*Rof*Rw1w2*Ti_p
+        + Ci*Cw*Riw*Rof*Rw2i*Ti_p
+        + Ci*Rfi*Row1*Ti_p
+        + Ci*Rfi*Rw1w2*Ti_p
+        + Ci*Rfi*Rw2i*Ti_p
+        + Ci*Rof*Row1*Ti_p
+        + Ci*Rof*Rw1w2*Ti_p
+        + Ci*Rof*Rw2i*Ti_p
+        + Cs*Cw*Qf_ext*Ris*Riw*Rof*Row1
+        + Cs*Cw*Qf_ext*Ris*Riw*Rof*Rw1w2
+        + Cs*Cw*Qf_ext*Ris*Riw*Rof*Rw2i
+        + Cs*Cw*Qi_ext*Rfi*Ris*Riw*Row1
+        + Cs*Cw*Qi_ext*Rfi*Ris*Riw*Rw1w2
+        + Cs*Cw*Qi_ext*Rfi*Ris*Riw*Rw2i
+        + Cs*Cw*Qi_ext*Ris*Riw*Rof*Row1
+        + Cs*Cw*Qi_ext*Ris*Riw*Rof*Rw1w2
+        + Cs*Cw*Qi_ext*Ris*Riw*Rof*Rw2i
+        + Cs*Cw*Qw1_ext*Rfi*Ris*Riw*Row1
+        + Cs*Cw*Qw1_ext*Ris*Riw*Rof*Row1
+        + Cs*Cw*Qw2_ext*Rfi*Ris*Riw*Row1
+        + Cs*Cw*Qw2_ext*Rfi*Ris*Riw*Rw1w2
+        + Cs*Cw*Qw2_ext*Ris*Riw*Rof*Row1
+        + Cs*Cw*Qw2_ext*Ris*Riw*Rof*Rw1w2
+        + Cs*Cw*Rfi*Ris*Riw*To
+        + Cs*Cw*Rfi*Ris*Row1*Tw_p
+        + Cs*Cw*Rfi*Ris*Rw1w2*Tw_p
+        + Cs*Cw*Rfi*Ris*Rw2i*Tw_p
+        + Cs*Cw*Rfi*Riw*Row1*Ts_p
+        + Cs*Cw*Rfi*Riw*Rw1w2*Ts_p
+        + Cs*Cw*Rfi*Riw*Rw2i*Ts_p
+        + Cs*Cw*Ris*Riw*Rof*To
+        + Cs*Cw*Ris*Riw*Row1*To
+        + Cs*Cw*Ris*Riw*Rw1w2*To
+        + Cs*Cw*Ris*Riw*Rw2i*To
+        + Cs*Cw*Ris*Rof*Row1*Tw_p
+        + Cs*Cw*Ris*Rof*Rw1w2*Tw_p
+        + Cs*Cw*Ris*Rof*Rw2i*Tw_p
+        + Cs*Cw*Riw*Rof*Row1*Ts_p
+        + Cs*Cw*Riw*Rof*Rw1w2*Ts_p
+        + Cs*Cw*Riw*Rof*Rw2i*Ts_p
+        + Cs*Qf_ext*Ris*Rof*Row1
+        + Cs*Qf_ext*Ris*Rof*Rw1w2
+        + Cs*Qf_ext*Ris*Rof*Rw2i
+        + Cs*Qi_ext*Rfi*Ris*Row1
+        + Cs*Qi_ext*Rfi*Ris*Rw1w2
+        + Cs*Qi_ext*Rfi*Ris*Rw2i
+        + Cs*Qi_ext*Ris*Rof*Row1
+        + Cs*Qi_ext*Ris*Rof*Rw1w2
+        + Cs*Qi_ext*Ris*Rof*Rw2i
+        + Cs*Qw1_ext*Rfi*Ris*Row1
+        + Cs*Qw1_ext*Ris*Rof*Row1
+        + Cs*Qw2_ext*Rfi*Ris*Row1
+        + Cs*Qw2_ext*Rfi*Ris*Rw1w2
+        + Cs*Qw2_ext*Ris*Rof*Row1
+        + Cs*Qw2_ext*Ris*Rof*Rw1w2
+        + Cs*Qw_ext*Rfi*Ris*Row1
+        + Cs*Qw_ext*Rfi*Ris*Rw1w2
+        + Cs*Qw_ext*Rfi*Ris*Rw2i
+        + Cs*Qw_ext*Ris*Rof*Row1
+        + Cs*Qw_ext*Ris*Rof*Rw1w2
+        + Cs*Qw_ext*Ris*Rof*Rw2i
+        + Cs*Rfi*Ris*To
+        + Cs*Rfi*Row1*Ts_p
+        + Cs*Rfi*Rw1w2*Ts_p
+        + Cs*Rfi*Rw2i*Ts_p
+        + Cs*Ris*Rof*To
+        + Cs*Ris*Row1*To
+        + Cs*Ris*Rw1w2*To
+        + Cs*Ris*Rw2i*To
+        + Cs*Rof*Row1*Ts_p
+        + Cs*Rof*Rw1w2*Ts_p
+        + Cs*Rof*Rw2i*Ts_p
+        + Cw*Qf_ext*Riw*Rof*Row1
+        + Cw*Qf_ext*Riw*Rof*Rw1w2
+        + Cw*Qf_ext*Riw*Rof*Rw2i
+        + Cw*Qi_ext*Rfi*Riw*Row1
+        + Cw*Qi_ext*Rfi*Riw*Rw1w2
+        + Cw*Qi_ext*Rfi*Riw*Rw2i
+        + Cw*Qi_ext*Riw*Rof*Row1
+        + Cw*Qi_ext*Riw*Rof*Rw1w2
+        + Cw*Qi_ext*Riw*Rof*Rw2i
+        + Cw*Qs_ext*Rfi*Riw*Row1
+        + Cw*Qs_ext*Rfi*Riw*Rw1w2
+        + Cw*Qs_ext*Rfi*Riw*Rw2i
+        + Cw*Qs_ext*Riw*Rof*Row1
+        + Cw*Qs_ext*Riw*Rof*Rw1w2
+        + Cw*Qs_ext*Riw*Rof*Rw2i
+        + Cw*Qw1_ext*Rfi*Riw*Row1
+        + Cw*Qw1_ext*Riw*Rof*Row1
+        + Cw*Qw2_ext*Rfi*Riw*Row1
+        + Cw*Qw2_ext*Rfi*Riw*Rw1w2
+        + Cw*Qw2_ext*Riw*Rof*Row1
+        + Cw*Qw2_ext*Riw*Rof*Rw1w2
+        + Cw*Rfi*Riw*To
+        + Cw*Rfi*Row1*Tw_p
+        + Cw*Rfi*Rw1w2*Tw_p
+        + Cw*Rfi*Rw2i*Tw_p
+        + Cw*Riw*Rof*To
+        + Cw*Riw*Row1*To
+        + Cw*Riw*Rw1w2*To
+        + Cw*Riw*Rw2i*To
+        + Cw*Rof*Row1*Tw_p
+        + Cw*Rof*Rw1w2*Tw_p
+        + Cw*Rof*Rw2i*Tw_p
+        + Qf_ext*Rof*Row1
+        + Qf_ext*Rof*Rw1w2
+        + Qf_ext*Rof*Rw2i
+        + Qi_ext*Rfi*Row1
+        + Qi_ext*Rfi*Rw1w2
+        + Qi_ext*Rfi*Rw2i
+        + Qi_ext*Rof*Row1
+        + Qi_ext*Rof*Rw1w2
+        + Qi_ext*Rof*Rw2i
+        + Qs_ext*Rfi*Row1
+        + Qs_ext*Rfi*Rw1w2
+        + Qs_ext*Rfi*Rw2i
+        + Qs_ext*Rof*Row1
+        + Qs_ext*Rof*Rw1w2
+        + Qs_ext*Rof*Rw2i
+        + Qw1_ext*Rfi*Row1
+        + Qw1_ext*Rof*Row1
+        + Qw2_ext*Rfi*Row1
+        + Qw2_ext*Rfi*Rw1w2
+        + Qw2_ext*Rof*Row1
+        + Qw2_ext*Rof*Rw1w2
+        + Qw_ext*Rfi*Row1
+        + Qw_ext*Rfi*Rw1w2
+        + Qw_ext*Rfi*Rw2i
+        + Qw_ext*Rof*Row1
+        + Qw_ext*Rof*Rw1w2
+        + Qw_ext*Rof*Rw2i
+        + Rfi*To
+        + Rof*To
+        + Row1*To
+        + Rw1w2*To
+        + Rw2i*To)/(Cf*Ci*Cs*Cw*Rfi*Ris*Riw*Rof*Row1
+        + Cf*Ci*Cs*Cw*Rfi*Ris*Riw*Rof*Rw1w2
+        + Cf*Ci*Cs*Cw*Rfi*Ris*Riw*Rof*Rw2i
+        + Cf*Ci*Cs*Rfi*Ris*Rof*Row1
+        + Cf*Ci*Cs*Rfi*Ris*Rof*Rw1w2
+        + Cf*Ci*Cs*Rfi*Ris*Rof*Rw2i
+        + Cf*Ci*Cw*Rfi*Riw*Rof*Row1
+        + Cf*Ci*Cw*Rfi*Riw*Rof*Rw1w2
+        + Cf*Ci*Cw*Rfi*Riw*Rof*Rw2i
+        + Cf*Ci*Rfi*Rof*Row1
+        + Cf*Ci*Rfi*Rof*Rw1w2
+        + Cf*Ci*Rfi*Rof*Rw2i
+        + Cf*Cs*Cw*Rfi*Ris*Riw*Rof
+        + Cf*Cs*Cw*Rfi*Ris*Rof*Row1
+        + Cf*Cs*Cw*Rfi*Ris*Rof*Rw1w2
+        + Cf*Cs*Cw*Rfi*Ris*Rof*Rw2i
+        + Cf*Cs*Cw*Rfi*Riw*Rof*Row1
+        + Cf*Cs*Cw*Rfi*Riw*Rof*Rw1w2
+        + Cf*Cs*Cw*Rfi*Riw*Rof*Rw2i
+        + Cf*Cs*Cw*Ris*Riw*Rof*Row1
+        + Cf*Cs*Cw*Ris*Riw*Rof*Rw1w2
+        + Cf*Cs*Cw*Ris*Riw*Rof*Rw2i
+        + Cf*Cs*Rfi*Ris*Rof
+        + Cf*Cs*Rfi*Rof*Row1
+        + Cf*Cs*Rfi*Rof*Rw1w2
+        + Cf*Cs*Rfi*Rof*Rw2i
+        + Cf*Cs*Ris*Rof*Row1
+        + Cf*Cs*Ris*Rof*Rw1w2
+        + Cf*Cs*Ris*Rof*Rw2i
+        + Cf*Cw*Rfi*Riw*Rof
+        + Cf*Cw*Rfi*Rof*Row1
+        + Cf*Cw*Rfi*Rof*Rw1w2
+        + Cf*Cw*Rfi*Rof*Rw2i
+        + Cf*Cw*Riw*Rof*Row1
+        + Cf*Cw*Riw*Rof*Rw1w2
+        + Cf*Cw*Riw*Rof*Rw2i
+        + Cf*Rfi*Rof
+        + Cf*Rof*Row1
+        + Cf*Rof*Rw1w2
+        + Cf*Rof*Rw2i
+        + Ci*Cs*Cw*Rfi*Ris*Riw*Row1
+        + Ci*Cs*Cw*Rfi*Ris*Riw*Rw1w2
+        + Ci*Cs*Cw*Rfi*Ris*Riw*Rw2i
+        + Ci*Cs*Cw*Ris*Riw*Rof*Row1
+        + Ci*Cs*Cw*Ris*Riw*Rof*Rw1w2
+        + Ci*Cs*Cw*Ris*Riw*Rof*Rw2i
+        + Ci*Cs*Rfi*Ris*Row1
+        + Ci*Cs*Rfi*Ris*Rw1w2
+        + Ci*Cs*Rfi*Ris*Rw2i
+        + Ci*Cs*Ris*Rof*Row1
+        + Ci*Cs*Ris*Rof*Rw1w2
+        + Ci*Cs*Ris*Rof*Rw2i
+        + Ci*Cw*Rfi*Riw*Row1
+        + Ci*Cw*Rfi*Riw*Rw1w2
+        + Ci*Cw*Rfi*Riw*Rw2i
+        + Ci*Cw*Riw*Rof*Row1
+        + Ci*Cw*Riw*Rof*Rw1w2
+        + Ci*Cw*Riw*Rof*Rw2i
+        + Ci*Rfi*Row1
+        + Ci*Rfi*Rw1w2
+        + Ci*Rfi*Rw2i
+        + Ci*Rof*Row1
+        + Ci*Rof*Rw1w2
+        + Ci*Rof*Rw2i
+        + Cs*Cw*Rfi*Ris*Riw
+        + Cs*Cw*Rfi*Ris*Row1
+        + Cs*Cw*Rfi*Ris*Rw1w2
+        + Cs*Cw*Rfi*Ris*Rw2i
+        + Cs*Cw*Rfi*Riw*Row1
+        + Cs*Cw*Rfi*Riw*Rw1w2
+        + Cs*Cw*Rfi*Riw*Rw2i
+        + Cs*Cw*Ris*Riw*Rof
+        + Cs*Cw*Ris*Riw*Row1
+        + Cs*Cw*Ris*Riw*Rw1w2
+        + Cs*Cw*Ris*Riw*Rw2i
+        + Cs*Cw*Ris*Rof*Row1
+        + Cs*Cw*Ris*Rof*Rw1w2
+        + Cs*Cw*Ris*Rof*Rw2i
+        + Cs*Cw*Riw*Rof*Row1
+        + Cs*Cw*Riw*Rof*Rw1w2
+        + Cs*Cw*Riw*Rof*Rw2i
+        + Cs*Rfi*Ris
+        + Cs*Rfi*Row1
+        + Cs*Rfi*Rw1w2
+        + Cs*Rfi*Rw2i
+        + Cs*Ris*Rof
+        + Cs*Ris*Row1
+        + Cs*Ris*Rw1w2
+        + Cs*Ris*Rw2i
+        + Cs*Rof*Row1
+        + Cs*Rof*Rw1w2
+        + Cs*Rof*Rw2i
+        + Cw*Rfi*Riw
+        + Cw*Rfi*Row1
+        + Cw*Rfi*Rw1w2
+        + Cw*Rfi*Rw2i
+        + Cw*Riw*Rof
+        + Cw*Riw*Row1
+        + Cw*Riw*Rw1w2
+        + Cw*Riw*Rw2i
+        + Cw*Rof*Row1
+        + Cw*Rof*Rw1w2
+        + Cw*Rof*Rw2i
+        + Rfi
+        + Rof
+        + Row1
+        + Rw1w2
+        + Rw2i))
+    Tw = ((Cw*Riw*Tw_p
+        + Qw_ext*Riw
+        + Ti)/(Cw*Riw
+        + 1))
+    Ts = ((Cs*Ris*Ts_p
+        + Qs_ext*Ris
+        + Ti)/(Cs*Ris
+        + 1))
+    Tf = ((Cf*Rfi*Rof*Tf_p
+        + Qf_ext*Rfi*Rof
+        + Rfi*To
+        + Rof*Ti)/(Cf*Rfi*Rof
+        + Rfi
+        + Rof))
 
-    if i == 0: #If time = 0
-        return Ti_p, Ts_p, Tw_p #Return initial conditions
-
-    #If time != 0 perform calculations
-    a = Ci*Cs*Cw*Ris*Riw*Roi*Row1*Ts_p + Ci*Cs*Cw*Ris*Riw*Roi*Rw1w2*Ts_p
-    a += Ci*Cs*Cw*Ris*Riw*Roi*Rw2i*Ts_p + Ci*Cs*Ris*Roi*Row1*Ts_p
-    a += Ci*Cs*Ris*Roi*Rw1w2*Ts_p + Ci*Cs*Ris*Roi*Rw2i*Ts_p
-    a += Ci*Cw*Qs_ext*Ris*Riw*Roi*Row1 + Ci*Cw*Qs_ext*Ris*Riw*Roi*Rw1w2
-    a += Ci*Cw*Qs_ext*Ris*Riw*Roi*Rw2i + Ci*Cw*Riw*Roi*Row1*Ti_p
-    a += Ci*Cw*Riw*Roi*Rw1w2*Ti_p + Ci*Cw*Riw*Roi*Rw2i*Ti_p
-    a += Ci*Qs_ext*Ris*Roi*Row1 + Ci*Qs_ext*Ris*Roi*Rw1w2
-    a += Ci*Qs_ext*Ris*Roi*Rw2i + Ci*Roi*Row1*Ti_p
-    a += Ci*Roi*Rw1w2*Ti_p + Ci*Roi*Rw2i*Ti_p
-    a += Cs*Cw*Ris*Riw*Roi*Ts_p + Cs*Cw*Ris*Riw*Row1*Ts_p
-    a += Cs*Cw*Ris*Riw*Rw1w2*Ts_p + Cs*Cw*Ris*Riw*Rw2i*Ts_p
-    a += Cs*Cw*Ris*Roi*Row1*Ts_p + Cs*Cw*Ris*Roi*Rw1w2*Ts_p
-    a += Cs*Cw*Ris*Roi*Rw2i*Ts_p + Cs*Cw*Riw*Roi*Row1*Ts_p
-    a += Cs*Cw*Riw*Roi*Rw1w2*Ts_p + Cs*Cw*Riw*Roi*Rw2i*Ts_p
-    a += Cs*Ris*Roi*Ts_p + Cs*Ris*Row1*Ts_p + Cs*Ris*Rw1w2*Ts_p
-    a += Cs*Ris*Rw2i*Ts_p + Cs*Roi*Row1*Ts_p + Cs*Roi*Rw1w2*Ts_p
-    a += Cs*Roi*Rw2i*Ts_p + Cw*Qi_ext*Riw*Roi*Row1
-    a += Cw*Qi_ext*Riw*Roi*Rw1w2 + Cw*Qi_ext*Riw*Roi*Rw2i
-    a += Cw*Qs_ext*Ris*Riw*Roi + Cw*Qs_ext*Ris*Riw*Row1
-    a += Cw*Qs_ext*Ris*Riw*Rw1w2 + Cw*Qs_ext*Ris*Riw*Rw2i
-    a += Cw*Qs_ext*Ris*Roi*Row1 + Cw*Qs_ext*Ris*Roi*Rw1w2
-    a += Cw*Qs_ext*Ris*Roi*Rw2i + Cw*Qs_ext*Riw*Roi*Row1
-    a += Cw*Qs_ext*Riw*Roi*Rw1w2 + Cw*Qs_ext*Riw*Roi*Rw2i
-    a += Cw*Qw1_ext*Riw*Roi*Row1 + Cw*Qw2_ext*Riw*Roi*Row1
-    a += Cw*Qw2_ext*Riw*Roi*Rw1w2 + Cw*Riw*Roi*To + Cw*Riw*Row1*To
-    a += Cw*Riw*Rw1w2*To + Cw*Riw*Rw2i*To + Cw*Roi*Row1*Tw_p
-    a += Cw*Roi*Rw1w2*Tw_p + Cw*Roi*Rw2i*Tw_p + Qi_ext*Roi*Row1
-    a += Qi_ext*Roi*Rw1w2 + Qi_ext*Roi*Rw2i + Qs_ext*Ris*Roi
-    a += Qs_ext*Ris*Row1 + Qs_ext*Ris*Rw1w2 + Qs_ext*Ris*Rw2i
-    a += Qs_ext*Roi*Row1 + Qs_ext*Roi*Rw1w2 + Qs_ext*Roi*Rw2i
-    a += Qw1_ext*Roi*Row1 + Qw2_ext*Roi*Row1 + Qw2_ext*Roi*Rw1w2
-    a += Qw_ext*Roi*Row1 + Qw_ext*Roi*Rw1w2 + Qw_ext*Roi*Rw2i
-    a += Roi*To + Row1*To + Rw1w2*To + Rw2i*To
-
-    b = Ci*Cs*Cw*Ris*Riw*Roi*Row1 + Ci*Cs*Cw*Ris*Riw*Roi*Rw1w2
-    b += Ci*Cs*Cw*Ris*Riw*Roi*Rw2i + Ci*Cs*Ris*Roi*Row1
-    b += Ci*Cs*Ris*Roi*Rw1w2 + Ci*Cs*Ris*Roi*Rw2i
-    b += Ci*Cw*Riw*Roi*Row1 + Ci*Cw*Riw*Roi*Rw1w2
-    b += Ci*Cw*Riw*Roi*Rw2i + Ci*Roi*Row1 + Ci*Roi*Rw1w2
-    b += Ci*Roi*Rw2i + Cs*Cw*Ris*Riw*Roi + Cs*Cw*Ris*Riw*Row1
-    b += Cs*Cw*Ris*Riw*Rw1w2 + Cs*Cw*Ris*Riw*Rw2i + Cs*Cw*Ris*Roi*Row1
-    b += Cs*Cw*Ris*Roi*Rw1w2 + Cs*Cw*Ris*Roi*Rw2i + Cs*Cw*Riw*Roi*Row1
-    b += Cs*Cw*Riw*Roi*Rw1w2 + Cs*Cw*Riw*Roi*Rw2i + Cs*Ris*Roi
-    b += Cs*Ris*Row1 + Cs*Ris*Rw1w2 + Cs*Ris*Rw2i + Cs*Roi*Row1
-    b += Cs*Roi*Rw1w2 + Cs*Roi*Rw2i + Cw*Riw*Roi + Cw*Riw*Row1
-    b += Cw*Riw*Rw1w2 + Cw*Riw*Rw2i + Cw*Roi*Row1 + Cw*Roi*Rw1w2
-    b += Cw*Roi*Rw2i + Roi + Row1 + Rw1w2 + Rw2i
-
-    Ts = a / b
-    Ti = Cs*Ris*Ts - Cs*Ris*Ts_p - Qs_ext*Ris + Ts
-    Tw = (Cw*Riw*Tw_p + Qw_ext*Riw + Ti) / (Cw*Riw + 1)
-    return Ti, Ts, Tw #Return indoor, slab, wall temperatures
+    return [Tf, Ti, Ts, Tw]

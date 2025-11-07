@@ -80,7 +80,7 @@ def test1():
 
     # check overall
     res = ctrl.get_output(keys=['opt-stats', 'duration'])
-    assert 19.5 < res['opt-stats']['objective'] < 20.5
+    assert 17.5 < res['opt-stats']['objective'] < 18.5
     assert res['opt-stats']['duration'] < 1
     assert res['opt-stats']['termination'] == 'optimal'
     assert res['duration']['all'] < 60*10
@@ -105,9 +105,10 @@ def test2():
     df = wf[wf.index.date == wf.index[0].date()]
 
     cases = []
-    cases.append([{'type': 'R1C1', 'Rw2i': 0.1, 'Ci': 150e3}, ['room']])
-    cases.append([{'type': 'R2C2', 'Rw2i': 0.1, 'Ci': 150e3, 'Ris': 0.01, 'Cs': 500e3},
-                  ['room', 'slab']])
+    cases.append([{'type': 'R1C1', 'Rw2i': 0.1, 'Ci': 150e3},
+                  ['room']])
+    cases.append([{'type': 'R2C2', 'Rw2i': 0.1, 'Ci': 150e3, 'Riw': 0.01, 'Cw': 500e3},
+                  ['room', 'wall']])
 
     for case in cases:
         print(case)

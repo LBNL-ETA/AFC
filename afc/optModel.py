@@ -9,9 +9,8 @@ Optimization model.
 
 # pylint: disable=bare-except, too-many-locals, invalid-name, too-many-statements
 # pylint: disable=pointless-string-statement, possibly-used-before-assignment
+# pylint: disable=used-before-assignment, too-many-branches
 
-import os
-import sys
 import itertools
 import pandas as pd
 from pyomo.environ import Objective, minimize
@@ -21,21 +20,94 @@ from doper import pandas_to_dict
 from doper.models.basemodel import base_model
 # from doper.models.battery import add_battery
 
-try:
-    from .rcModel import R1C1, R2C2, R4C2, R5C3, R6C3
-except:
-    sys.path.append(os.path.join('..', 'afc'))
-    from rcModel import R1C1, R2C2, R4C2, R5C3, R6C3
+from . import rcModel
 
-def control_model(inputs, parameter):
-    """Control model for the AFC."""
+def zone_temp(model, ts, temps):
+    '''calculate zone temperature'''
+    if ts == model.ts.at(1):
+        return model.zone_temp[ts, temps] == model.zone_parameters['temps_initial'][temps]
 
-    model = base_model(inputs, parameter)
-    # model = add_battery(model, inputs, parameter)
+    # inputs
+    Ti_p = model.zone_temp[ts-model.timestep[ts], 0]
+    To = model.outside_temperature[ts-model.timestep[ts]]
+    Qi_ext = model.zone_qi[ts-model.timestep[ts]]
+    Qw_ext = model.zone_qw[ts-model.timestep[ts]]
+
+    # two mass
+    rctype = model.zone_parameters['param']['type']
+    if 'C2' in rctype:
+        Tw_p = model.zone_temp[ts-model.timestep[ts], 1]
+    # three mass
+    elif 'C3' in rctype:
+        Tw_p = model.zone_temp[ts-model.timestep[ts], 1]
+        Ts_p = model.zone_temp[ts-model.timestep[ts], 2]
+        Qs_ext = model.zone_qs[ts-model.timestep[ts]]
+    # four mass
+    elif 'C4' in rctype:
+        Tw_p = model.zone_temp[ts-model.timestep[ts], 1]
+        Ts_p = model.zone_temp[ts-model.timestep[ts], 2]
+        Tf_p = model.zone_temp[ts-model.timestep[ts], 3]
+        Qs_ext = model.zone_qs[ts-model.timestep[ts]]
+        Qf_ext = model.zone_absf[ts-model.timestep[ts]]
+    # window system
+    if any(rctype.startswith(r) for r in ['R4', 'R5', 'R6', 'R7']):
+        Qw1_ext = model.zone_abs1[ts-model.timestep[ts]]
+        Qw2_ext = model.zone_abs2[ts-model.timestep[ts]]
+
+    # rc model selection
+    if model.rctuning:
+        param = {}
+        for p in model.rc_parameter:
+            param[p] = getattr(model, p)
+    else:
+        param = model.zone_parameters['param'].copy()
+    param['timestep'] = model.timestep[ts]
+
+    if rctype == 'R1C1':
+        Qi_ext = Qi_ext + Qw_ext
+        res_temps = rcModel.R1C1(1, Ti_p, To, Qi_ext, param)
+    elif rctype == 'R2C2':
+        res_temps = rcModel.R2C2(1, Ti_p, Tw_p, To, Qi_ext, Qw_ext, param)
+    elif rctype == 'R4C2':
+        res_temps = rcModel.R4C2(1, Ti_p, Tw_p, To, Qw1_ext, Qw2_ext,
+                                    Qi_ext, Qw_ext, param)
+    elif rctype == 'R5C2':
+        # disable slab C and R
+        Ts_p = Tw_p
+        Qs_ext = 0
+        param['Ris'] = 1e6
+        param['Cs'] = 0
+        res_temps = rcModel.R6C3(1, Ti_p, Tw_p, Ts_p, To, Qw1_ext, Qw2_ext,
+                                    Qi_ext, Qw_ext, Qs_ext, param)[:2]
+    elif rctype in ['R5C3', 'R6C3']:
+        # include wind
+        # param['Roi'] = model.Roi
+        # param['Row1'] = param['Row1'] * model.how1[ts-model.timestep[ts]]
+        # param['Row1'] = model.how1[ts-model.timestep[ts]]
+        Qw_ext = Qw_ext - Qs_ext # Qs included in Qw
+        if rctype == 'R6C3':
+            res_temps = rcModel.R6C3(1, Ti_p, Tw_p, Ts_p, To, Qw1_ext, Qw2_ext,
+                                        Qi_ext, Qw_ext, Qs_ext, param)
+        res_temps = rcModel.R5C3(1, Ti_p, Tw_p, Ts_p, To, Qw1_ext, Qw2_ext,
+                                    Qi_ext, Qw_ext, Qs_ext, param)
+    elif rctype in ['R7C4']:
+        Qw_ext = Qw_ext - Qs_ext # Qs included in Qw
+        res_temps = rcModel.R7C4(1, Ti_p, Tw_p, Ts_p, Tf_p, To, Qw1_ext, Qw2_ext,
+                                    Qi_ext, Qw_ext, Qs_ext, Qf_ext, param)
+    else:
+        raise ValueError(f'RC model type {rctype} not supported.')
+    return model.zone_temp[ts, temps] == res_temps[temps]
+
+def add_thermal(model, inputs, parameter):
+    """Thermal model for the AFC."""
 
     inputs = inputs.copy(deep=True)
     if isinstance(inputs.index[0], type(pd.to_datetime(0))):
         inputs.index = inputs.index.astype('int64')/1e9 # Convert datetime to UNIX
+
+    # parameters
+    model.zone_parameters = parameter['zone']
+    model.rctuning = False
 
     model.fzones = Set(initialize=parameter['facade']['logical_windows'], doc='window zones')
     model.fstates = Set(initialize=parameter['facade']['logical_window_states'],
@@ -90,7 +162,7 @@ def control_model(inputs, parameter):
 
     # Facade model
     model.zone_wpi = Var(model.ts, doc='wpi in zone')
-    model.zone_shg = Var(model.ts, doc='shg in zone')
+    # model.zone_shg = Var(model.ts, doc='shg in zone')
     model.zone_vil = Var(model.ts, doc='vil in zone')
     model.zone_abs1 = Var(model.ts, doc='abs1 in zone')
     model.zone_abs2 = Var(model.ts, doc='abs2 in zone')
@@ -99,12 +171,12 @@ def control_model(inputs, parameter):
     model.fstate = Var(model.ts, model.fzones, doc='facade state')
     model.der_fstate = Var(model.ts, model.fzones, doc='facade state')
     # Precompute
-    inputs['how1'] = 1 / (parameter['facade']['window_area'] * \
-                          (parameter['facade']['convection_window_offset'] \
-                           + parameter['facade']['convection_window_scale'] \
-                           * inputs['wind_speed']))
-    model.how1 = Param(model.ts, initialize=pandas_to_dict(inputs['how1']), \
-                       doc='window heat transfer rate [K/W]')
+    # inputs['how1'] = 1 / (parameter['facade']['window_area'] * \
+    #                       (parameter['facade']['convection_window_offset'] \
+    #                        + parameter['facade']['convection_window_scale'] \
+    #                        * inputs['wind_speed']))
+    # model.how1 = Param(model.ts, initialize=pandas_to_dict(inputs['how1']), \
+    #                    doc='window heat transfer rate [K/W]')
 
     def fstate_unique(model, ts, fzone):
         return 1 == sum(model.fstate_bin[ts, fzone, s] for s in model.fstates)
@@ -301,6 +373,8 @@ def control_model(inputs, parameter):
     model.heating_efficiency = Param(model.ts,
                                      initialize=pandas_to_dict(inputs['heating_efficiency']),
                                      doc='variable heating efficiency')
+    model.zone_absf = Param(model.ts, initialize=pandas_to_dict(inputs['zone_absf']),
+                            doc='exterior wall heat gains')
 
     def zone_p(model, ts):
         return model.p[ts] == model.p_lights[ts] \
@@ -349,8 +423,8 @@ def control_model(inputs, parameter):
 
     # Thermal Comfort
     model.zone_qi = Var(model.ts, doc='convective gains in zone')
-    model.zone_qw = Var(model.ts, doc='gains in wall (radiative) in zone')
-    model.zone_qs = Var(model.ts, doc='gains in slab (radiative) in zone')
+    model.zone_qw = Var(model.ts, doc='gains on wall (radiative) in zone')
+    model.zone_qs = Var(model.ts, doc='gains on slab (radiative) in zone')
 
     def zone_qi(model, ts):
         Qi_ext = model.p_lights[ts] * (1 - parameter['zone']['lighting_split']) \
@@ -375,44 +449,6 @@ def control_model(inputs, parameter):
     model.constraint_zone_qs = Constraint(model.ts, rule=zone_qs,
                                           doc='calculation radiative gains slab')
 
-    def zone_temp(model, ts, temps):
-        if ts == model.ts.at(1):
-            return model.zone_temp[ts, temps] == parameter['zone']['temps_initial'][temps]
-
-        Ti_p = model.zone_temp[ts-model.timestep[ts], 0]
-        To = model.outside_temperature[ts-model.timestep[ts]]
-        Qi_ext = model.zone_qi[ts-model.timestep[ts]]
-        Qw_ext = model.zone_qw[ts-model.timestep[ts]]
-        param = parameter['zone']['param'].copy()
-        param['timestep'] = model.timestep[ts]
-        if param['type'] == 'R1C1':
-            res_temps = R1C1(1, Ti_p, To, Qi_ext + Qw_ext, param)
-        elif param['type'] == 'R2C2':
-            Ts_p = model.zone_temp[ts-model.timestep[ts], 1]
-            res_temps = R2C2(1, Ti_p, Ts_p, To, Qi_ext, Qw_ext, param)
-        elif param['type'] in ['R4C2', 'R5C3', 'R6C3']:
-            Qw1_ext = model.zone_abs1[ts-model.timestep[ts]]
-            Qw2_ext = model.zone_abs2[ts-model.timestep[ts]]
-            Qs_ext = model.zone_qs[ts-model.timestep[ts]]
-            Ts_p = model.zone_temp[ts-model.timestep[ts], 1]
-            if param['type'] == 'R4C2':
-                Qi_ext = Qi_ext + Qw_ext - Qs_ext
-                Qw_ext = Qs_ext
-                res_temps = R4C2(1, Ti_p, Ts_p, To, Qw1_ext, Qw2_ext, Qi_ext, Qw_ext, param)
-            elif param['type'] == 'R5C3':
-                Tw_p = model.zone_temp[ts-model.timestep[ts], 2]
-                Qw_ext = Qw_ext - Qs_ext
-                res_temps = R5C3(1, Ti_p, Ts_p, Tw_p, To, Qw1_ext, Qw2_ext,
-                                 Qi_ext, Qs_ext, Qw_ext, param)
-            elif param['type'] == 'R6C3':
-                Tw_p = model.zone_temp[ts-model.timestep[ts], 2]
-                Qw_ext = Qw_ext - Qs_ext
-                param['Row1'] = param['Row1'] * model.how1[ts]
-                res_temps = R6C3(1, Ti_p, Ts_p, Tw_p, To, Qw1_ext, Qw2_ext,
-                                 Qi_ext, Qs_ext, Qw_ext, param)
-        else:
-            raise ValueError(f'RC model type {param["type"]} not supported.')
-        return model.zone_temp[ts, temps] == res_temps[temps]
     model.constraint_zone_temp = Constraint(model.ts, model.temps, rule=zone_temp,
                                             doc='calculation of temperature')
 
@@ -443,9 +479,15 @@ def control_model(inputs, parameter):
     model.constraint_zone_min_temperature = Constraint(model.ts, model.temps,
                                                        rule=zone_min_temperature,
                                                        doc='min temperature')
+    return model
 
-    if 'weight_degradation' in parameter['objective']:
-        print('WARNING: No "degradation" in objective function.')
+def control_model(inputs, parameter):
+    """Control model for the AFC."""
+
+    model = base_model(inputs, parameter)
+    # model = add_battery(model, inputs, parameter)
+    model = add_thermal(model, inputs, parameter)
+
     def objective_function(model):
         return model.sum_energy_cost * parameter['objective']['weight_energy'] \
                + model.sum_demand_cost * parameter['objective']['weight_demand'] \
@@ -466,7 +508,7 @@ def afc_output_list():
     ctrlOutputs.append({'data': 'zone_wpi', 'df_label': 'Window Illuminance [lx]'})
     ctrlOutputs.append({'data': 'zone_wpi_ext', 'df_label': 'Artificial Illuminance [lx]'})
     ctrlOutputs.append({'data': 'p_lights', 'df_label': 'Power Lights [W]'})
-    ctrlOutputs.append({'data': 'zone_shg', 'df_label': 'Solar Heat Gain [W]'})
+    # ctrlOutputs.append({'data': 'zone_shg', 'df_label': 'Solar Heat Gain [W]'})
     ctrlOutputs.append({'data': 'zone_glare', 'df_label': 'Glare [-]'})
     ctrlOutputs.append({'data': 'outside_temperature', 'df_label': 'Outside Air Temperature [C]'})
     ctrlOutputs.append({'data': 'p_heating', 'df_label': 'Power Heating [W]'})
