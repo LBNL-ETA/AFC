@@ -54,7 +54,8 @@ def optimize_param(inputs, parameter, printing=True, model=model):
     #                  }
     res = rctuner.do_optimization(inputs,
                                   tee=printing,
-                                  options=parameter['solver_options'])
+                                  options=parameter['solver_options'],
+                                  other_valid_terminations=[]) # exclude time limit
 
     duration, objective, df, model, result, termination, parameter = res
 
@@ -245,6 +246,11 @@ class RcTuning:
             run_tuning = self.inputs['zone_tslab'].std() > self.min_std_tslab
 
         # run tuning
+        self.optimal = False
+        duration = -1
+        self.df = pd.DataFrame()
+        self.res_lhs = pd.DataFrame()
+        objective = -1
         if run_tuning:
 
             # make rc bounds
@@ -287,21 +293,17 @@ class RcTuning:
                                  printing=self.printing,
                                  rc_tuning_model=self.model,
                                  rc_converter=self.rc_converter)
-            duration, objective, self.df, new_param, inputs, res_lhs, termination = self.res
+            duration, objective, self.df, new_param, _, self.res_lhs, termination = self.res
+            self.optimal = str(termination) == 'optimal'
 
             # store
-            self.parameters[self.inputs.index[0]] = new_param
-            self.new_param = new_param
-            self.optimal = str(termination) == 'optimal'
-            self.res_lhs = res_lhs
-            self.execution_count += 1
-        else:
-            duration = -1
-            self.df = pd.DataFrame()
-            self.new_param = rc_parameter_prev
-            self.res_lhs = pd.DataFrame()
-            self.optimal = False
-            objective = -1
+            if self.optimal:
+                self.new_param = new_param
+            else:
+                self.new_param = rc_parameter_prev
+            self.parameters[self.inputs.index[0]] = self.new_param
+
+        self.execution_count += 1
 
         return {'optimal': self.optimal,
                 'duration': duration,

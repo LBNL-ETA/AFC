@@ -122,7 +122,7 @@ class Controller(eFMU):
         # make dir
         log_dir = os.path.join(self.input['parameter']['wrapper']['log_dir'],
                                str(self.input['parameter']['wrapper']['instance_id']))
-        os.mkdirs(log_dir, exist_ok=True)
+        os.makedirs(log_dir, exist_ok=True)
 
         # log
         fname = str(self.data.index[0]).replace(' ','').replace(':','')
