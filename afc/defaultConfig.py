@@ -314,7 +314,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     parameter['wrapper'] = {}
     parameter['wrapper']['instance_id'] = instance_id # Unique instance id
     parameter['wrapper']['printing'] = debug # Console printing of solver
-    parameter['wrapper']['log_overtime'] = 60-5 # Log inputs when long solving time, in seconds
+    parameter['wrapper']['log_overtime'] = 60*5 # Log inputs when long solving time, in seconds
     parameter['wrapper']['log_dir'] = './logs' # Directory to store logs
     parameter['wrapper']['inputs_cutoff'] = 6 # Cutoff at X digits to prevent numeric noise
     parameter['wrapper']['resample_variable_ts'] = True # Use variable timestep in model

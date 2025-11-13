@@ -91,18 +91,11 @@ class Controller(eFMU):
         rm_paths = [p for p in sys.path if 'Documents' in p]
         _ = [sys.path.remove(p) for p in rm_paths]
 
-#         # Add to path
-#         sys.path.append(self.root)
-#         for path in self.input['paths'].values():
-#             sys.path.append(path)
-
         # DOPER
-        #sys.path.append(os.path.join(root, '..', '..', 'doper_private'))
         from doper import DOPER, get_solver, standard_report, resample_variable_ts, compute_periods
         from doper.data.tariff import get_tariff
 
         #from DOPER.wrapper import DOPER
-        #from computetariff import compute_periods
         self.doper = DOPER
         self.get_solver = get_solver
         self.standard_report = standard_report
@@ -113,12 +106,10 @@ class Controller(eFMU):
         self.forecaster = forecast
 
         # Controller modules
-        #from ComputeTariff import compute_periods
         self.compute_periods = compute_periods
         self.get_tariff = get_tariff
 
         # Glare logic
-        #sys.path.append(os.path.join(self.input['paths']['emulator'], 'controller'))
         from afc.glare.view_angle import make_view_config, view_config_from_rad
         from afc.glare.heur_glare import MultiZone
         self.make_view_config = make_view_config
@@ -128,12 +119,12 @@ class Controller(eFMU):
     def log_results(self):
         """Function to log results."""
 
-        log_dir = self.input['parameter']['wrapper']['log_dir']
-        if not os.path.exists(log_dir):
-            os.mkdir(log_dir)
-        log_dir = os.path.join(log_dir, str(self.input['parameter']['wrapper']['instance_id']))
-        if not os.path.exists(log_dir):
-            os.mkdir(log_dir)
+        # make dir
+        log_dir = os.path.join(self.input['parameter']['wrapper']['log_dir'],
+                               str(self.input['parameter']['wrapper']['instance_id']))
+        os.mkdirs(log_dir, exist_ok=True)
+
+        # log
         fname = str(self.data.index[0]).replace(' ','').replace(':','')
         with open(os.path.join(log_dir, fname+'.txt'), 'w', encoding='utf8') as f:
             json.dump(self.controller.parameter, f)
@@ -420,11 +411,11 @@ class Controller(eFMU):
                 # apply mpc setpoint
                 uShade = df[[f'Facade State {z}' for \
                     z in self.parameter['facade']['logical_windows']]].iloc[0].values
-                self.output['ctrl-facade'] = [round(float(u),1) for u in uShade]
+                self.output['ctrl-facade'] = [round(float(u), 1) for u in uShade]
             elif self.parameter['wrapper']['use_fallback']:
                 # use heuristic control
                 ix = wf.index[0]
-                uShade = [round(float(u),1) for u in wf.loc[ix, self.glare_ctrl_cols]]
+                uShade = [round(float(u), 1) for u in wf.loc[ix, self.glare_ctrl_cols]]
                 self.output['ctrl-facade'] = uShade
             else:
                 # hold previous value
@@ -436,8 +427,9 @@ class Controller(eFMU):
             self.output['duration']['outputs'] = time.time() - st1
             self.output['duration']['all'] = time.time() - st
 
-            # Store if long optimization
-            if self.output['duration']['all'] > self.parameter['wrapper']['log_overtime']:
+            # Store if error or timeout
+            opt_timeout = self.output['duration']['all'] > self.parameter['wrapper']['log_overtime']
+            if (not objective) or opt_timeout:
                 self.log_results()
 
             self.init = False
