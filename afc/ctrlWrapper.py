@@ -470,6 +470,8 @@ def make_inputs(parameter, df, ext_df=pd.DataFrame(), return_json=True):
         'temp_wall_max': 1e3,
         'temp_wall_min': 0,
         'grid_co2_intensity': 0,
+        'min_cool': 0,
+        'min_heat': 0,
     }
 
     # Default inputs

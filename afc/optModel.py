@@ -159,6 +159,10 @@ def add_thermal(model, inputs, parameter):
                                      doc='constraint for wpi lookup table')
     model.glare_constraint_max = Param(model.ts, initialize=pandas_to_dict(inputs['glare_max']), \
                                        doc='constraint for glare lookup table')
+    model.min_cooling = Param(model.ts, initialize=pandas_to_dict(inputs['min_cool']), \
+                              doc='constraint for minimum cooling')
+    model.min_heating = Param(model.ts, initialize=pandas_to_dict(inputs['min_heat']), \
+                              doc='constraint for minimum heating')
 
     # Facade model
     model.zone_wpi = Var(model.ts, doc='wpi in zone')
@@ -452,17 +456,28 @@ def add_thermal(model, inputs, parameter):
     model.constraint_zone_temp = Constraint(model.ts, model.temps, rule=zone_temp,
                                             doc='calculation of temperature')
 
-    def zone_heating_limit(model, ts, temps):
+    def zone_heating_max(model, ts, temps):
         return model.zone_heat[ts, temps] <= parameter['zone']['heat_max'][temps]
-    model.constraint_zone_heating_limit = Constraint(model.ts, model.temps,
-                                                     rule=zone_heating_limit,
-                                                     doc='limit of heating')
+    model.constraint_zone_heating_max = Constraint(model.ts, model.temps,
+                                                   rule=zone_heating_max,
+                                                   doc='upper limit of heating')
+    
+    def zone_heating_min(model, ts):
+        return model.zone_cool[ts, model.temps.at(1)] >= model.min_heating[ts]
+    model.constraint_zone_heating_min = Constraint(model.ts,
+                                                   rule=zone_heating_min,
+                                                   doc='lower limit of air heating')
 
-    def zone_cooling_limit(model, ts, temps):
+    def zone_cooling_max(model, ts, temps):
         return model.zone_cool[ts, temps] <= parameter['zone']['cool_max'][temps]
-    model.constraint_zone_cooling_limit = Constraint(model.ts, model.temps,
-                                                     rule=zone_cooling_limit,
-                                                     doc='limit of cooling')
+    model.constraint_zone_cooling_max = Constraint(model.ts, model.temps,
+                                                   rule=zone_cooling_max,
+                                                   doc='upper limit of cooling')
+    def zone_cooling_min(model, ts):
+        return model.zone_cool[ts, model.temps.at(1)] >= model.min_cooling[ts]
+    model.constraint_zone_cooling_min = Constraint(model.ts,
+                                                   rule=zone_cooling_min,
+                                                   doc='lower limit of air cooling')
 
     def zone_max_temperature(model, ts, temps):
         if ts == model.ts.at(-1):
