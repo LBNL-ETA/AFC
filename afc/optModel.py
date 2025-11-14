@@ -461,7 +461,7 @@ def add_thermal(model, inputs, parameter):
     model.constraint_zone_heating_max = Constraint(model.ts, model.temps,
                                                    rule=zone_heating_max,
                                                    doc='upper limit of heating')
-    
+
     def zone_heating_min(model, ts):
         return model.zone_cool[ts, model.temps.at(1)] >= model.min_heating[ts]
     model.constraint_zone_heating_min = Constraint(model.ts,
