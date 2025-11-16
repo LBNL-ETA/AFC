@@ -347,6 +347,9 @@ class Controller(eFMU):
                 data[cols[1]] = \
                     np.max([[t_init-(i+1)*self.parameter['wrapper']['limit_slope'] \
                              for i in range(len(data))], data[cols[1]]], axis=0)
+                # make sure no temperature setpoint overlap
+                data[cols[1]] = data[cols[1]].mask(data[cols[1]] > data[cols[0]],
+                                                   data[cols[0]]-dead_band)
 
                 # resample
                 data = self.resample_variable_ts(data, \
