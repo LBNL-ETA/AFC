@@ -103,13 +103,13 @@ def get_rc_parameter(inputs, inputs_0, rctype='R4C2', mode='sepSlab', has_window
     # initial temperature
     parameter['temps_initial'] = [float(inputs_0['zone_troom'].values[0])]
     if 'C2' in rctype:
-        parameter['temps_initial'].append(float(inputs_0['zone_tslab'].values[0]))
+        parameter['temps_initial'].append(float(inputs_0['zone_twall'].values[0]))
     elif 'C3' in rctype:
-        parameter['temps_initial'].append(float(inputs_0['zone_tslab'].values[0]))
         parameter['temps_initial'].append(float(inputs_0['zone_twall'].values[0]))
+        parameter['temps_initial'].append(float(inputs_0['zone_tslab'].values[0]))
     elif 'C4' in rctype:
-        parameter['temps_initial'].append(float(inputs_0['zone_tslab'].values[0]))
         parameter['temps_initial'].append(float(inputs_0['zone_twall'].values[0]))
+        parameter['temps_initial'].append(float(inputs_0['zone_tslab'].values[0]))
         parameter['temps_initial'].append(float(inputs_0['zone_textw'].values[0]))
 
     # 1 mass sytem (no window)
@@ -189,7 +189,7 @@ def make_output_list(rc_type='R4C2'):
 
     column_map = {
         'Error Room Temperature [C]': 'diff_troom',
-        'Error Slab Temperature [C]': 'diff_tslab',
+        'Error Wall Temperature [C]': 'diff_twall',
         'Outside Air Temperature [C]': 'outside_temperature',
         'Convective Internal Gains [W]': 'zone_qi',
         'Measured Room Temperature [C]': 'zone_troom',

@@ -178,7 +178,7 @@ def get_zone_config(parameter, lighting_efficiency=0.24, system_cooling_eff=1/3.
     # defaults
     parameter['zone']['zone_id'] = 1 # zone id for multizone
     parameter['zone']['lighting_capacity'] = 1000 # lx
-    parameter['zone']['temps_name'] = ['room', 'slab'] #, 'wall']
+    parameter['zone']['temps_name'] = ['room', 'wall'] #, 'slab']
     parameter['zone']['temps_initial'] = [22.5, 22.5, 22.5]
 
     parameter['zone']['lighting_split'] = 0.6 # Match to emulator (1=rad, 0=conv)

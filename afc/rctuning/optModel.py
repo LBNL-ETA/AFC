@@ -183,29 +183,12 @@ def model(inputs, parameter):
     model.constraint_mse_troom = Constraint(rule=mse_troom,
                                             doc='mean squared error room temperature')
 
-    model.diff_tslab = Var(model.ts, doc='difference slab temperature [C]')
-    model.mse_tslab = Var(doc='mean squared slab error [C]')
-    if 'weight_tslab' in parameter['objective'].keys():
-        def diff_tslab(model, ts):
-            '''calculate slab difference'''
-            return model.diff_tslab[ts] == model.zone_temp[ts, 1] - model.zone_tslab[ts]
-        model.constraint_diff_tslab = Constraint(model.ts,
-                                                 rule=diff_tslab,
-                                                 doc='difference slab calculation')
-
-        def mse_tslab(model):
-            '''calculate mse for tslab'''
-            return model.mse_tslab == \
-                sum(model.diff_tslab[t] ** 2 for t in evaluation_ts) / len(inputs)
-        model.constraint_mse_tslab = Constraint(rule=mse_tslab,
-                                                doc='mean squared error slab temperature')
-
     model.diff_twall = Var(model.ts, doc='difference wall temperature [C]')
     model.mse_twall = Var(doc='mean squared wall error [C]')
     if 'weight_twall' in parameter['objective'].keys():
         def diff_twall(model, ts):
             '''calculate wall difference'''
-            return model.diff_twall[ts] == model.zone_temp[ts, 2] - model.zone_twall[ts]
+            return model.diff_twall[ts] == model.zone_temp[ts, 1] - model.zone_twall[ts]
         model.constraint_diff_twall = Constraint(model.ts,
                                                  rule=diff_twall,
                                                  doc='difference wall calculation')
@@ -216,6 +199,23 @@ def model(inputs, parameter):
                 sum(model.diff_twall[t] ** 2 for t in evaluation_ts) / len(inputs)
         model.constraint_mse_twall = Constraint(rule=mse_twall,
                                                 doc='mean squared error wall temperature')
+
+    model.diff_tslab = Var(model.ts, doc='difference slab temperature [C]')
+    model.mse_tslab = Var(doc='mean squared slab error [C]')
+    if 'weight_tslab' in parameter['objective'].keys():
+        def diff_tslab(model, ts):
+            '''calculate slab difference'''
+            return model.diff_tslab[ts] == model.zone_temp[ts, 2] - model.zone_tslab[ts]
+        model.constraint_diff_tslab = Constraint(model.ts,
+                                                 rule=diff_tslab,
+                                                 doc='difference slab calculation')
+
+        def mse_tslab(model):
+            '''calculate mse for tslab'''
+            return model.mse_tslab == \
+                sum(model.diff_tslab[t] ** 2 for t in evaluation_ts) / len(inputs)
+        model.constraint_mse_tslab = Constraint(rule=mse_tslab,
+                                                doc='mean squared error slab temperature')
 
     # model.diff_Qw2i = Var(model.ts, doc='difference Qw2i [W]')
     # model.mse_Qw2i = Var(doc='mean squared Qw2i error [C]')
