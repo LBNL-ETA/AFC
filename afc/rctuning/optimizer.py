@@ -258,12 +258,12 @@ class RcTuning:
             if not (self.first_free and self.execution_count == 0):
                 # first dampen
                 if self.first_dampen and self.execution_count == 0:
-                    dampen = float(self.first_dampen)
+                    dampen = min(1, float(self.first_dampen))
                 # other dampen
                 elif self.dampen_param and self.execution_count > 0:
-                    dampen = float(self.dampen_param)
+                    dampen = min(1, float(self.dampen_param))
                 else:
-                    dampen = None
+                    dampen = 1
                 # set rc bounds
                 for k in rc_parameter:
                     if k.startswith('R') or k.startswith('C'):
@@ -271,7 +271,7 @@ class RcTuning:
                             rc_parameter[k]['init'] = rc_parameter_prev[k]
                             if dampen:
                                 rc_parameter[k]['lb'] = max(0,
-                                    rc_parameter[k]['init'] - rc_parameter[k]['init'] * dampen)
+                                    rc_parameter[k]['init'] * dampen)
                                 rc_parameter[k]['ub'] = max(0,
                                     rc_parameter[k]['init'] + rc_parameter[k]['init'] * dampen)
                         # else:
