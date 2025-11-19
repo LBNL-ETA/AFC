@@ -55,12 +55,12 @@ def default_parameter(rctype='R4C2', fixed_air_valume=None):
     parameter['Ci'] = {'init': 1e6, 'lb': 1e5, 'ub': 1e7}
     # two mass (wall)
     if rctype in ['R2C2', 'R4C2', 'R5C2', 'R5C3', 'R6C3', 'R7C4']:
-        parameter['Riw'] = {'init': 1e-2, 'lb': 1e-4, 'ub': 1e-1}
-        parameter['Cw'] = {'init': 1e8, 'lb': 1e7, 'ub': 1e10}
+        parameter['Riw'] = {'init': 1e-3, 'lb': 1e-5, 'ub': 1e-2}
+        parameter['Cw'] = {'init': 1e7, 'lb': 1e6, 'ub': 1e9}
     # three mass (slab)
     if rctype in ['R5C3', 'R6C3', 'R7C4']:
-        parameter['Ris'] = {'init': 1e3, 'lb': 1e3, 'ub': 1e3}
-        parameter['Cs'] = {'init': 5e5, 'lb': 1e5, 'ub': 5e6}
+        parameter['Ris'] = {'init': 1e-3, 'lb': 1e-5, 'ub': 1e-2}
+        parameter['Cs'] = {'init': 1e6, 'lb': 1e5, 'ub': 1e8}
     # four mass (ext wall)
     if rctype in ['R7C4']:
         parameter['Rof'] = {'init': 1e-1, 'lb': 1e-3, 'ub': 1e1}
@@ -68,8 +68,8 @@ def default_parameter(rctype='R4C2', fixed_air_valume=None):
         parameter['Cf'] = {'init': 5e5, 'lb': 1e4, 'ub': 5e6}
     # window system
     if rctype in ['R4C2', 'R5C2', 'R5C3', 'R6C3', 'R7C4']:
-        parameter['Row1'] = {'init': 1e-3, 'lb': 1e-4, 'ub': 1e-2}
-        parameter['Rw1w2'] = {'init': 1e-2, 'lb': 1e-5, 'ub': 1e-1}
+        parameter['Row1'] = {'init': 1e-3, 'lb': 1e-4, 'ub': 1e-1}
+        parameter['Rw1w2'] = {'init': 1e-2, 'lb': 1e-4, 'ub': 1}
     # exterior walls
     if rctype in ['R5C2', 'R6C3']:
         parameter['Roi'] = {'init': 1e-1, 'lb': 1e-3, 'ub': 1e2}
