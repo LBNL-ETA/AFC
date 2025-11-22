@@ -258,10 +258,10 @@ class RcTuning:
             if not (self.first_free and self.execution_count == 0):
                 # first dampen
                 if self.first_dampen and self.execution_count == 0:
-                    dampen = min(1, float(self.first_dampen))
+                    dampen = max(1, float(self.first_dampen))
                 # other dampen
                 elif self.dampen_param and self.execution_count > 0:
-                    dampen = min(1, float(self.dampen_param))
+                    dampen = max(1, float(self.dampen_param))
                 else:
                     dampen = 1
                 # set rc bounds
@@ -270,10 +270,8 @@ class RcTuning:
                         if k in rc_parameter_prev.keys():
                             rc_parameter[k]['init'] = rc_parameter_prev[k]
                             if dampen:
-                                rc_parameter[k]['lb'] = max(0,
-                                    rc_parameter[k]['init'] * dampen)
-                                rc_parameter[k]['ub'] = max(0,
-                                    rc_parameter[k]['init'] + rc_parameter[k]['init'] * dampen)
+                                rc_parameter[k]['lb'] = rc_parameter[k]['init'] / dampen
+                                rc_parameter[k]['ub'] = rc_parameter[k]['init'] * dampen
                         # else:
                         #     print(f'WARNING: Skipping, as {k} is not in rc_parameter_prev.')
                 # fix c
