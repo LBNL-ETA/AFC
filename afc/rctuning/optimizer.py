@@ -24,7 +24,7 @@ from .utility import convert_rc_parameter
 from .defaultConfig import get_rc_parameter, INPUTS_DESCRIPTION, TEMPERATURES
 
 try:
-    from pyDOE import lhs
+    from pydoe import lhs
     PYDOE_LOADED = True
 except:
     # print('WARNING: PyDOE not installed.')

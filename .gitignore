@@ -1,4 +1,8 @@
 logs
+afc/resources/radiance/systems_*
+dev/newRadianceForecast/*.json
+dev/newRadianceJson/*.json
+creds_*.json
 
 # Python compiled files #
 #########################
@@ -9,7 +13,7 @@ logs
 
 # JSON files #
 ##############
-*.json
+# *.json
 
 # ipynb checkpoints #
 #####################
