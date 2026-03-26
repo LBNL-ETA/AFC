@@ -139,6 +139,6 @@ def group_glazing_systems(results_dir):
 if __name__ == "__main__":
     PATH_GS = "glazing_systems_20250417T160159.json"  # US only (glass)
     # make the systems
-    res_dir = make_systems(PATH_GS)
+    temp_dir = make_systems(PATH_GS)
     # move to directories
-    group_glazing_systems(res_dir)
+    group_glazing_systems(temp_dir)
