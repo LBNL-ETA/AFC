@@ -7,4 +7,4 @@ pytz
 pydoe
 frads @ git+https://github.com/LBNL-ETA/frads@v2.1.14
 doper @ git+https://github.com/LBNL-ETA/DOPER
-pywincalc @ file:./afc/resources/pyWinCalc/pywincalc-3.7.2-cp310-cp310-linux_x86_64.whl
+pywincalc @ https://raw.githubusercontent.com/LBNL-ETA/AFC/master/afc/resources/pyWinCalc/pywincalc-3.7.2-cp310-cp310-linux_x86_64.whl
