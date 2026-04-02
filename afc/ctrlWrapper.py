@@ -49,7 +49,8 @@ class Controller(eFMU):
             'wf-all': None,
             'facade-initial': None,
             'temps-initial': None,
-            'parameter': None
+            'parameter': None,
+            'timeout': None
         }
         self.output = {
             'duration': None,
