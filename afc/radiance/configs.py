@@ -32,7 +32,7 @@ def get_config(mode, wwr, name_sys=None, abs_path=True,
         config_path = os.path.join(root_cfg, f'room{wwr}WWR_{cfg_mode}.cfg')
         #filestruct['resources'] = os.path.join(root, 'bsdf', mode)
         filestruct["glazing_systems"] = os.path.join(root_sys, "glazing_systems", name_sys)
-        filestruct["matrices"] = os.path.join(root_sys, "matrices", name_sys, str(wwr))
+        filestruct["matrices"] = os.path.join(root_sys, "matrices", cfg_mode, str(wwr))
     else:
         print(f"ERROR: Mode {mode} not supported.")
     if abs_path:
