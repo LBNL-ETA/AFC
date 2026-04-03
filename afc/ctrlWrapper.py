@@ -511,7 +511,6 @@ if __name__ == '__main__':
     root = os.getcwd()
 
     from afc.utility.weather import example_weather_forecast
-    # from afc.radiance.configs import get_config
     from afc.defaultConfig import default_parameter
     from afc.utility.plotting import plot_standard1
 

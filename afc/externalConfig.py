@@ -121,7 +121,9 @@ def config_from_dict(config):
     root_rad = os.path.split(parameter['radiance']['paths']['rad_config'])[0]
     filestruct, rad_config = get_config(parameter['facade']['type'],
                                         str(0.6), # need to be fixed to www=0.6
-                                        root=root_rad)
+                                        name_sys=parameter['facade']['name'],
+                                        root_cfg=root_rad,
+                                        root_sys=root_rad)
     parameter['radiance']['paths']['rad_config'] = rad_config
     parameter['radiance']['paths']['rad_systems'] = filestruct['glazing_systems']
     parameter['radiance']['paths']['rad_mtx'] = filestruct['matrices']

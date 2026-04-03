@@ -63,6 +63,7 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
     # define facade
     if facade_type == 'ec-71t':
         parameter['facade']['type'] = 'ec'
+        parameter['facade']['name'] = 'ec'
         parameter['facade']['windows'] = [0, 1, 2]
         parameter['facade']['states'] = [0, 1, 2, 3] # dark to bright
         parameter['facade']['fstate_initial'] = [3, 3, 3] # Initial state of facade
@@ -133,7 +134,7 @@ def get_radiance_config(parameter, regenerate=False, wwr=0.4, latitude=37.7, lon
     # paths
     filestruct, rad_config = get_config(parameter['facade']['type'],
                                         str(parameter['radiance']['wwr']),
-                                        root=os.path.join(root, 'resources', 'radiance'))
+                                        name_sys=parameter['facade']['name'])
     parameter['radiance']['paths'] = {}
     parameter['radiance']['paths']['rad_config'] = rad_config
     parameter['radiance']['paths']['rad_systems'] = filestruct['glazing_systems']
