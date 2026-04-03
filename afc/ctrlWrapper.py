@@ -72,6 +72,7 @@ class Controller(eFMU):
         self.resample_variable_ts = None
         self.forecaster = None
         self.forecaster_class = None
+        self.facade_static_param = None
         self.compute_periods = None
         self.get_tariff = None
         self.make_view_config = None
@@ -175,11 +176,14 @@ class Controller(eFMU):
                                              wpi_config=self.parameter['radiance']['wpi_config'],
                                              reflectances=reflectances,
                                              n_cpus=self.parameter['radiance']['n_cpus'])
+
                 # Update logical window system
-                self.parameter['facade']['logical_windows'] = \
-                    list(range(self.forecaster.logical_windows))
-                self.parameter['facade']['logical_window_states'] = \
-                    self.forecaster.logical_window_states
+                self.facade_static_param = {
+                    'logical_windows': list(range(self.forecaster.logical_windows)),
+                    'logical_window_states': self.forecaster.logical_window_states
+                }
+                self.parameter['facade'].update(self.facade_static_param)
+
                 # Store class
                 if self.parameter['radiance']['store_class']:
                     self.forecaster_class = self.forecaster
@@ -276,6 +280,8 @@ class Controller(eFMU):
 
             #flip_z = 'ec' in self.parameter['facade']['type']
             gmodes = []
+            # Update logical window system
+            self.parameter['facade'].update(self.facade_static_param)
             for nz in self.parameter['facade']['logical_windows']:
                 wf_key = f'zone{nz}_gmode'
                 gmodes.append(wf.loc[wf.index[0], wf_key])
