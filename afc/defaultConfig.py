@@ -12,7 +12,7 @@ Default configuration.
 
 import os
 import sys
-from doper.models.basemodel import default_output_list
+from doper.utility import default_output_list
 from doper.examples import default_parameter as default_parameter_doper
 
 try:
