@@ -327,6 +327,11 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     parameter['wrapper']['precompute_radiance'] = precompute_radiance # Precompute rad for all data
     parameter['wrapper']['solver_name'] = 'cbc'
     parameter['wrapper']['solver_dir'] = None
+    # pass custom control model {"module": "my_module", "name": "model"}
+    parameter['wrapper']['control_model'] = None
+    # optional pre-processor {"module": "my_module", "name": "my_pre_processor"}
+    # expected signature: my_pre_processor(data, parameter) -> data
+    parameter['wrapper']['pre_processor'] = None
     output_list = default_output_list(parameter) + afc_output_list()
     parameter['wrapper']['output_list'] = output_list
     parameter['wrapper']['tariff_name'] = tariff_name

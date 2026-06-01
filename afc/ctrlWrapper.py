@@ -29,9 +29,11 @@ from fmlc.baseclasses import eFMU
 try:
     root = os.path.dirname(os.path.abspath(__file__))
     from .utility.thermostat import compute_thermostat_setpoints
+    from .wrapper_utils import resolve_wrapper_callable
 except:
     root = os.getcwd()
     from afc.utility.thermostat import compute_thermostat_setpoints
+    from afc.wrapper_utils import resolve_wrapper_callable
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
@@ -86,6 +88,8 @@ class Controller(eFMU):
         self.data = None
         self.res = None
         self.parameter = None
+        self.control_model = None
+        self.pre_processor = None
 
     def init_functions(self):
         """Function to initialize controller."""
@@ -230,7 +234,12 @@ class Controller(eFMU):
                     self.glare_handler = wf
 
                 # DOPER controller
-                from afc.optModel import control_model#, pyomo_to_pandas
+                from afc.optModel import control_model as default_control_model
+                self.control_model = resolve_wrapper_callable(
+                    self.parameter['wrapper']['control_model'],
+                    default_callable=default_control_model,
+                    spec_name='control_model'
+                )
                 if self.parameter['wrapper']['solver_dir']:
                     solver_path = \
                         self.get_solver(self.parameter['wrapper']['solver_name'],
@@ -242,11 +251,17 @@ class Controller(eFMU):
                         logging.ERROR
                 self.tariff = self.get_tariff(self.parameter['wrapper']['tariff_name'])
                 output_list = self.parameter['wrapper']['output_list']
-                self.controller = self.doper(model=control_model,
+                self.controller = self.doper(model=self.control_model,
                                              parameter=self.parameter,
                                              solver_path=solver_path,
                                              pyomo_logger=pyomo_logger,
                                              output_list=output_list)
+
+                # pre-processor
+                self.pre_processor = resolve_wrapper_callable(
+                    self.parameter['wrapper']['pre_processor'],
+                    spec_name='pre_processor'
+                )
 
             # Compute radiance
             st1 = time.time()
@@ -367,6 +382,10 @@ class Controller(eFMU):
 
             # Compute and update tariff
             data, _ = self.compute_periods(data, self.tariff, self.parameter)
+
+            # Optional pre-processing hook
+            if self.pre_processor is not None:
+                data = self.pre_processor(data, self.parameter)
 
             # Check for nan
             if pd.isnull(data).any().any():
