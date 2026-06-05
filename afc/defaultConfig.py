@@ -332,6 +332,9 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     # optional pre-processor {"module": "my_module", "name": "my_pre_processor"}
     # expected signature: my_pre_processor(data, parameter) -> data
     parameter['wrapper']['pre_processor'] = None
+    # optional setpoint processor {"module": "my_module", "name": "my_sp_processor"}
+    # expected signature: my_sp_processor(data, parameter) -> setpoints
+    parameter['wrapper']['sp_processor'] = None
     output_list = default_output_list(parameter) + afc_output_list()
     parameter['wrapper']['output_list'] = output_list
     parameter['wrapper']['tariff_name'] = tariff_name

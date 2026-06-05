@@ -25,15 +25,14 @@ import numpy as np
 import pandas as pd
 
 from fmlc.baseclasses import eFMU
+from doper.utility import resolve_wrapper_callable
 
 try:
     root = os.path.dirname(os.path.abspath(__file__))
     from .utility.thermostat import compute_thermostat_setpoints
-    from .wrapper_utils import resolve_wrapper_callable
 except:
     root = os.getcwd()
     from afc.utility.thermostat import compute_thermostat_setpoints
-    from afc.wrapper_utils import resolve_wrapper_callable
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
@@ -61,6 +60,7 @@ class Controller(eFMU):
             'ctrl-facade': None,
             'ctrl-thermostat': None,
             'ctrl-troom': None,
+            'setpoints': None,
             'output-data': None,
             'valid': None
         }
@@ -90,6 +90,7 @@ class Controller(eFMU):
         self.parameter = None
         self.control_model = None
         self.pre_processor = None
+        self.sp_processor = None
 
     def init_functions(self):
         """Function to initialize controller."""
@@ -142,6 +143,7 @@ class Controller(eFMU):
         try:
             st = time.time()
             self.msg = ''
+            setpoints = {}
 
             # Parse input dataframe
             inputs = pd.read_json(io.StringIO(self.input['input-data']))
@@ -261,6 +263,12 @@ class Controller(eFMU):
                 self.pre_processor = resolve_wrapper_callable(
                     self.parameter['wrapper']['pre_processor'],
                     spec_name='pre_processor'
+                )
+
+                # setpoint processor
+                self.sp_processor = resolve_wrapper_callable(
+                    self.parameter['wrapper']['sp_processor'],
+                    spec_name='sp_processor'
                 )
 
             # Compute radiance
@@ -450,6 +458,11 @@ class Controller(eFMU):
                 # hold previous value
                 # self.output['ctrl-facade'] = None
                 pass
+
+            # Setpoint processor
+            if self.sp_processor is not None:
+                setpoints = self.sp_processor(df, self.parameter)
+            self.output['setpoints'] = setpoints
 
             df = df.astype(float).fillna(-1)
             self.output['output-data'] = df.to_json()
