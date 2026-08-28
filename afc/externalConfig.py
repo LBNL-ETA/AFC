@@ -23,6 +23,11 @@ try:
 except:
     root = os.getcwd()
 
+TARIFF_MAP = {
+    'PG&E E19 (2020)': 'e19-2020',
+    'PG&E B10 (2026)': 'b10-2026',
+}
+
 def read_json_config(config_path, json_only=False):
     """Utility function to parse a json configuration file.
 
@@ -48,25 +53,35 @@ def read_json_config(config_path, json_only=False):
 DEFAULT_JSON_PATH = os.path.join(root, 'resources', 'config', 'example_config.json')
 DEFAULT_DICT = read_json_config(DEFAULT_JSON_PATH, json_only=True)
 
+def coerce_config_types(config):
+    """Cast config values to types defined in example_config.json."""
+    for k, ref_val in DEFAULT_DICT.items():
+        if k not in config or isinstance(config[k], type(ref_val)):
+            continue
+        if isinstance(ref_val, bool):
+            config[k] = str(config[k]).lower() in ('true', '1', 'yes')
+        elif isinstance(ref_val, int):
+            config[k] = int(config[k])
+        elif isinstance(ref_val, float):
+            config[k] = float(config[k])
+
 def config_from_dict(config):
-    """Utility function to make configuration from a dictionary.
-    
-    Arg: 
-        config (dict): dictionary containing the json file data
-        
-    Returns:
-        dict: dictionary containing AFC parameters updated using to the json configuration
-    """
+    """Build AFC parameter dict from a flat config dictionary."""
 
     for k in read_json_config(DEFAULT_JSON_PATH, json_only=True):
         if k not in config:
             warnings.warn(f'The configuration of {k} is missing, using default.')
 
-    # Update heating and lighting efficiency dependung on the system type
-    if config['system_heating']=='el':
-        heating_efficiency = config['system_heating_eff']
-    else:
-        heating_efficiency = 1.0
+    coerce_config_types(config)
+
+    # Update efficiencies based on system type
+    if config['system_cooling'] not in ['el']:
+        raise ValueError('Only electric cooling ("el") supported.')
+
+    if config['system_heating'] not in ['el', 'hp']:
+        raise ValueError(
+            f"Heating system '{config['system_heating']}' not supported. Use 'el' or 'hp'."
+        )
 
     if config['system_light']=='FLU':
         lighting_efficiency = 0.05
@@ -77,11 +92,12 @@ def config_from_dict(config):
     else:
         raise ValueError(f'Ligthing system {config["system_light"]} not defined.')
 
-    # Update occupant glare prefernces (100%=>0.4; 80%=>0.3; 120%=>0.5)
+    # Update occupant glare preferences (100%=>0.4; 80%=>0.3; 120%=>0.5)
     glare_max = config['occupant_glare'] * 0.004
 
-    # Update occupant wpi prefernces (80%=>250lx 100%=>350lx 120%=>450lx.)
-    wpi_min = 250 + max(0, (config['occupant_brightness'] - 80) * 5)
+    # Update wpi_min: lighting setpoint scaled by occupant brightness preference
+    # occupant_brightness is a percentage scaler (100% = no change, 80% = 0.8x, 120% = 1.2x)
+    wpi_min = config['system_lux'] * (config['occupant_brightness'] / 100)
 
     # Get timezone and elevation
     lat = config['location_latitude']
@@ -105,7 +121,7 @@ def config_from_dict(config):
                                   location_orientation=int(config['location_orientation']),
                                   view_orient=config['occupant_1_direction'],
                                   view_dist=config['occupant_1_distance'],
-                                  system_heating_eff=heating_efficiency,
+                                  system_heating_eff=config['system_heating_eff'],
                                   lighting_efficiency=lighting_efficiency,
                                   number_occupants=config['occupant_number'],
                                   schedule=None,
@@ -146,7 +162,7 @@ def config_from_dict(config):
         parameter['zone']['param']['Row1'] = rc_param['Row1'] / facade_ratio
         parameter['zone']['param']['Rw1w2'] = rc_param['Rw1w2'] / facade_ratio
         parameter['zone']['param']['Rw2i'] = rc_param['Rw2i'] / facade_ratio
-    elif config['building_age'] in ['post-1980', 'pre-1980']:
+    elif config['building_age'] in ['post_1980', 'pre_1980']:
         parameter['zone']['param']['Ci'] = rc_param['Ci'] * area_ratio
         parameter['zone']['param']['Cs'] = rc_param['Cs'] * area_ratio / 4
         parameter['zone']['param']['Ris'] = rc_param['Ris'] / area_ratio
