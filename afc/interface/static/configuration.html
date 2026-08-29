@@ -1,0 +1,395 @@
+<!-- Advanced Fenestration Controller (AFC) Copyright (c) 2023, The
+     Regents of the University of California, through Lawrence Berkeley
+     National Laboratory (subject to receipt of any required approvals
+     from the U.S. Dept. of Energy). All rights reserved. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Configuration</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/static/header.css" type="text/css"/>
+</head>
+<body class="body">
+    <div id="wrapper">
+        <center><h2>AFC User Interface</h2></center>
+        <hr>
+    </div>
+    <div id="wrapper">
+        <center><a href='/'>Preferences</a> |
+        <a href='/config/'>Configuration</a> |
+        <a href='/debug/'>Debug</a></center>
+        <hr>
+    </div>
+    <div id="wrapper"><center>
+
+<form action='' method='post' onkeypress="return event.keyCode != 13;">
+
+<b>Site information:</b><br />
+Zone Name: <input type="text" name="system_id" style="width:100px">
+Unit: <select name="unit" id="unit_select" onchange="update_units()">
+    <option value="ft">feet</option>
+    <option value="m">meter</option>
+</select><br />
+State: <select name="location_state" onchange="update_city()">
+{% for k in dict_state %}
+<option value="{{ k }}">{{ k }}</option>
+{% endfor %}
+</select>
+City: <select name="location_city" id="location_city"></select>
+<br />
+Elevation (<span class="unit_label">ft</span>): <input type="text" name="location_elevation_disp" id="location_elevation_disp" style="width:55px" value="170">
+<br />
+Orientation (deg): <select name="location_orientation">
+    <option value="0">0 - S</option>
+    <option value="30">30 - SSW</option>
+    <option value="45">45 - SW</option>
+    <option value="60">60 - SWW</option>
+    <option value="90">90 - W</option>
+    <option value="120">120 - WWN</option>
+    <option value="135">135 - NW</option>
+    <option value="150">150 - NNW</option>
+    <option value="180">180 - N</option>
+    <option value="-150">-150 - NNE</option>
+    <option value="-135">-135 - NE</option>
+    <option value="-120">-120 - NEE</option>
+    <option value="-90">-90 - E</option>
+    <option value="-60">-60 - EES</option>
+    <option value="-45">-45 - SE</option>
+    <option value="-30">-30 - SSE</option>
+</select>
+<br />
+Building Age: <select name="building_age">
+    <option value="new_constr">New Construction</option>
+    <option value="post_1980">Existing (post-1980)</option>
+    <option value="pre_1980">Existing (pre-1980)</option>
+</select>
+<br />
+<script type="text/javascript">
+var dict_state_all = {{ dict_state_all | safe }};
+function update_city() {
+    var cities = dict_state_all[document.getElementsByName("location_state")[0].value];
+    var table = "";
+    for (var i = 0; i < cities.length; i++) {
+        table += '<option value="' + cities[i] + '">' + cities[i] + '</option>';
+    }
+    document.getElementById("location_city").innerHTML = table;
+}
+</script>
+<br />
+
+<b>Room Dimension (<span class="unit_label">ft</span>):</b><br />
+<div id="room_image"></div>
+Width: <input type="text" name="room_width" id="room_width" onchange="update_drawings()" style="width:35px" value="10">
+Height: <input type="text" name="room_height" id="room_height" onchange="update_drawings()" style="width:35px" value="11">
+Depth: <input type="text" name="room_depth" id="room_depth" onchange="update_drawings(); update_distance();" style="width:35px" value="15">
+<br /><br />
+
+<b>Occupant Position:</b><br />
+Distance: <select name="occupant_1_location" id="occupant_1_location_canvas" onchange="update_drawings(); update_distance();">
+    <option value="1">At Window</option>
+    <option value="2">Close to Window</option>
+    <option value="3">Centered</option>
+    <option value="4">Close to Rear Wall</option>
+    <option value="5">At Rear Wall</option>
+</select> &nbsp;<span id="dist_display"></span><br />
+Orientation: <select name="occupant_1_direction" onchange="update_drawings()">
+    <option value="s">Window</option>
+    <option value="w">Right</option>
+    <option value="n">Rear-Wall</option>
+    <option value="e">Left</option>
+</select><br />
+<!-- TODO: occupants 2 and 3 – may be added in future
+Occupant 2: <select name="occupant_2_location" onchange="update_drawings()">
+    <option value="0">None</option>
+    <option value="1">At Window</option>
+    <option value="2">Close to Window</option>
+    <option value="3">Centered</option>
+    <option value="4">Close to Rear Wall</option>
+    <option value="5">At Rear Wall</option>
+</select>
+Orientation: <select name="occupant_2_direction" onchange="update_drawings()">
+    <option value="0">None</option>
+    <option value="s">Window</option>
+    <option value="w">Right</option>
+    <option value="n">Rear-Wall</option>
+    <option value="e">Left</option>
+</select><br />
+Occupant 3: <select name="occupant_3_location" onchange="update_drawings()">
+    <option value="0">None</option>
+    <option value="1">At Window</option>
+    <option value="2">Close to Window</option>
+    <option value="3">Centered</option>
+    <option value="4">Close to Rear Wall</option>
+    <option value="5">At Rear Wall</option>
+</select>
+Orientation: <select name="occupant_3_direction" onchange="update_drawings()">
+    <option value="0">None</option>
+    <option value="s">Window</option>
+    <option value="w">Right</option>
+    <option value="n">Rear-Wall</option>
+    <option value="e">Left</option>
+</select><br />
+-->
+<br />
+
+<b>Window Dimension (<span class="unit_label">ft</span>):</b><br />
+<div id="window_image"></div>
+Width: <input type="text" name="window_width" id="window_width" onchange="update_drawings()" style="width:35px" value="4.5">
+Height: <input type="text" name="window_height" id="window_height" onchange="update_drawings()" style="width:35px" value="8.5">
+Sill: <input type="text" name="window_sill" id="window_sill" onchange="update_drawings()" style="width:35px" value="0.5">
+Count: <input type="text" name="window_count" onchange="update_drawings()" style="width:25px" value="2">
+<br /><br />
+
+<script type="text/javascript">
+var w = 200;
+
+function draw_object(x0, y0, dw, dh, id) {
+    var ctx = document.getElementById(id).getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0, y0 - dh);
+    ctx.lineTo(x0 + dw, y0 - dh);
+    ctx.lineTo(x0 + dw, y0);
+    ctx.lineTo(x0, y0);
+    ctx.stroke();
+}
+
+function draw_wall(width, height, div_id, canvas_id) {
+    document.getElementById(div_id).innerHTML =
+        '<canvas id="' + canvas_id + '" width="' + width + '" height="' + height +
+        '" style="border:1px solid black;">Not supported</canvas>';
+}
+function draw_arrow(x0, y0, x1, y1, id) {
+    var ctx = document.getElementById(id).getContext('2d');
+    var headlen = 10;
+    var angle = Math.atan2(y1 - y0, x1 - x0);
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.lineTo(x1 - headlen * Math.cos(angle - Math.PI / 6), y1 - headlen * Math.sin(angle - Math.PI / 6));
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - headlen * Math.cos(angle + Math.PI / 6), y1 - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.stroke();
+}
+function draw_occupant(x0, y0, dir, id) {
+    var ctx = document.getElementById(id).getContext('2d');
+    ctx.beginPath(); ctx.arc(x0, y0, 5, 0, 2 * Math.PI); ctx.stroke();
+    var x1 = x0, y1 = y0;
+    if (dir == 's') { y1 -= 20; }
+    else if (dir == 'w') { x1 += 20; }
+    else if (dir == 'n') { y1 += 20; }
+    else if (dir == 'e') { x1 -= 20; }
+    draw_arrow(x0, y0, x1, y1, id);
+}
+function draw_text(x, y, text, id) {
+    var ctx = document.getElementById(id).getContext('2d');
+    ctx.textAlign = "center";
+    ctx.font = "10px Arial";
+    ctx.fillStyle = "black";
+    ctx.fillText(text, x, y);
+}
+var FT_TO_M = 0.3048;
+var _stored_m = {};
+
+var DIM_FIELDS = ['room_width', 'room_height', 'room_depth',
+                  'window_width', 'window_height', 'window_sill',
+                  'location_elevation_disp'];
+
+var LOC_FRACTIONS = [0.0, 0.25, 0.5, 0.75, 1.0];
+var LOC_LABELS = ['At Window', 'Close to Window', 'Centered', 'Close to Rear Wall', 'At Rear Wall'];
+
+function _to_m(val_str, unit) {
+    var v = parseFloat(val_str);
+    return (unit === 'ft') ? v * FT_TO_M : v;
+}
+function _from_m(val_m, unit) {
+    return (unit === 'ft') ? val_m / FT_TO_M : val_m;
+}
+function _fmt(v) { return Math.round(v * 10) / 10; }
+
+function update_units() {
+    var unit = document.getElementById('unit_select').value;
+    var labels = document.querySelectorAll('.unit_label');
+    for (var i = 0; i < labels.length; i++) { labels[i].textContent = unit; }
+    for (var j = 0; j < DIM_FIELDS.length; j++) {
+        var el = document.getElementById(DIM_FIELDS[j]);
+        if (!el) continue;
+        var cur_unit = el.dataset.unit || 'ft';
+        var cur_m = _to_m(el.value, cur_unit);
+        el.value = _fmt(_from_m(cur_m, unit));
+        el.dataset.unit = unit;
+    }
+    update_drawings();
+    update_distance();
+}
+function _get_m(field_id) {    
+    var el = document.getElementById(field_id);
+    if (!el) return 0;
+    var unit = el.dataset.unit || document.getElementById('unit_select').value;
+    return _to_m(el.value, unit);
+}
+function update_distance() {
+    var loc = Number(document.getElementById('occupant_1_location_canvas').value);
+    var depth_m = _get_m('room_depth');
+    var dist_m = LOC_FRACTIONS[loc - 1] * depth_m;
+    var unit = document.getElementById('unit_select').value;
+    var dist_disp = (unit === 'ft') ? _fmt(dist_m / FT_TO_M) : _fmt(dist_m);
+    document.getElementById('dist_display').textContent = '(' + dist_disp + ' ' + unit + ')';
+}
+function update_drawings() {
+    var r_w = Number(document.getElementsByName("room_width")[0].value);
+    var s = w / r_w;
+    var r_l = Number(document.getElementsByName("room_depth")[0].value) * s;
+    var ww = Number(document.getElementsByName("window_width")[0].value) * s;
+    var wc = Number(document.getElementsByName("window_count")[0].value);
+    var o1 = Number(document.getElementById("occupant_1_location_canvas").value);
+    var od1 = document.getElementsByName("occupant_1_direction")[0].value;
+    /* TODO: occupants 2 and 3 – may be added in future
+    var o2 = Number(document.getElementsByName("occupant_2_location")[0].value);
+    var od2 = document.getElementsByName("occupant_2_direction")[0].value;
+    var o3 = Number(document.getElementsByName("occupant_3_location")[0].value);
+    var od3 = document.getElementsByName("occupant_3_direction")[0].value;
+    */
+    draw_wall(w, r_l, "room_image", "room");
+    var wf = (w - wc * ww) / (wc + 1);
+    for (var i = 0; i < wc; i++) { draw_object(wf + i * (ww + wf), 0, ww, -5, "room"); }
+    draw_occupant(w / 2, r_l / 2 + (o1 - 3) * (r_l / 5), od1, "room");
+    draw_text(w * 3 / 4, r_l / 2 + (o1 - 3) * (r_l / 5), "Occupant 1", "room");
+    /* TODO: occupants 2 and 3 – may be added in future
+    if (o2 != 0 && od2 != '0') {
+        draw_occupant(w / 2, r_l / 2 + (o2 - 3) * (r_l / 5), od2, "room");
+        draw_text(w * 3 / 4, r_l / 2 + (o2 - 3) * (r_l / 5 + 15 / 2), "Occupant 2", "room");
+    }
+    if (o3 != 0 && od3 != '0') {
+        draw_occupant(w / 2, r_l / 2 + (o3 - 3) * (r_l / 5), od3, "room");
+        draw_text(w * 3 / 4, r_l / 2 + (o3 - 3) * (r_l / 5 + 15 / 2), "Occupant 3", "room");
+    }
+    */
+    var r_h = Number(document.getElementsByName("room_height")[0].value) * s;
+    var wh = Number(document.getElementsByName("window_height")[0].value) * s;
+    var ws = Number(document.getElementsByName("window_sill")[0].value) * s;
+    draw_wall(w, r_h, "window_image", "window");
+    wf = (w - wc * ww) / (wc + 1);
+    for (var i = 0; i < wc; i++) { draw_object(wf + i * (ww + wf), r_h - ws, ww, wh, "window"); }
+}
+</script>
+
+<b>Shading System:</b><br />
+Type: <select name="system_type">
+    <option value="ec-71t">Electrochromic (Model: Sage)</option>
+    <!-- TODO: additional shading systems
+    <option value="EC-AA">Electrochromic (Model: XX)</option>
+    <option value="RS-AA">Rollershade (Model: XX)</option>
+    <option value="VB-AA">Venetian Blinds (Model: XX)</option>
+    -->
+</select>
+Horizontal Zones: <select name="system_zones">
+    <!-- TODO: additional shading zones
+    <option value="1">1</option>
+    <option value="2">2</option>
+    -->
+    <option value="3">3</option>
+</select>
+<br /><br />
+
+<b>Lighting System:</b><br />
+Type: <select name="system_light">
+    <option value="FLU">Fluorescent</option>
+    <option value="LED">LED</option>
+</select>
+Setpoint: <select name="system_lux">
+    <option value="200">200</option>
+    <option value="300">300</option>
+    <option value="400">400</option>
+    <option value="500">500</option>
+    <option value="600">600</option>
+</select>
+<br /><br />
+
+<b>HVAC System:</b><br />
+Cooling: <select name="system_cooling">
+    <option value="el">Electric</option>
+</select>
+Efficiency: <select name="system_cooling_eff">
+    <option value="2.0">2.0</option>
+    <option value="2.5">2.5</option>
+    <option value="3.0">3.0</option>
+    <option value="3.5">3.5</option>
+    <option value="4.0">4.0</option>
+    <option value="4.5">4.5</option>
+    <option value="5.0">5.0</option>
+    <option value="5.5">5.5</option>
+    <option value="6.0">6.0</option>
+</select>
+<br />
+Heating: <select name="system_heating" onchange="update_heating_eff()">
+    <option value="el">Electric</option>
+    <option value="hp">Heat Pump</option>
+    <!-- TODO: gas heating – may be added in future
+    <option value="gas">Gas</option>
+    -->
+</select>
+Efficiency: <select name="system_heating_eff" id="system_heating_eff">
+    <option value="0.70">0.70</option>
+    <option value="0.75">0.75</option>
+    <option value="0.80">0.80</option>
+    <option value="0.85">0.85</option>
+    <option value="0.90">0.90</option>
+    <option value="0.95">0.95</option>
+</select>
+
+<script type="text/javascript">
+function update_heating_eff() {
+    var ht = document.getElementsByName('system_heating')[0].value;
+    var sel = document.getElementById('system_heating_eff');
+    var cur = sel.value;
+    var cop_opts = [['2.0','2.0'],['2.5','2.5'],['3.0','3.0'],['3.5','3.5'],
+                    ['4.0','4.0'],['4.5','4.5'],['5.0','5.0'],['5.5','5.5'],['6.0','6.0']];
+    var eff_opts = [['0.70','0.70'],['0.75','0.75'],['0.80','0.80'],
+                    ['0.85','0.85'],['0.90','0.90'],['0.95','0.95']];
+    var opts = (ht === 'hp') ? cop_opts : eff_opts;
+    sel.innerHTML = '';
+    for (var i = 0; i < opts.length; i++) {
+        var o = document.createElement('option');
+        o.value = opts[i][0]; o.text = opts[i][1];
+        sel.appendChild(o);
+    }
+    var found = false;
+    for (var j = 0; j < sel.options.length; j++) {
+        if (sel.options[j].value === cur) { sel.value = cur; found = true; break; }
+    }
+    if (!found) { sel.selectedIndex = Math.floor(sel.options.length / 2); }
+}
+</script>
+<br /><br />
+
+<b>Tariff:</b><br />
+Electricity Tariff: <select name="tariff_name">
+{% for label, value in tariff_map.items() %}
+    <option value="{{ value }}">{{ label }}</option>
+{% endfor %}
+</select>
+<br /><br />
+
+<input type='submit' value='Save Configuration' />
+<label style="margin-left:16px;"><input type="checkbox" name="debug" value="true"> Debug</label>
+
+<script type="text/javascript">
+{{ set_initial | safe }}
+update_units();
+update_heating_eff();
+update_distance();
+update_drawings();
+</script>
+
+</form>
+
+    </center></div>
+    <footer>
+        <hr>
+        <div id="wrapper"><center>
+            <span class="alignright">Christoph Gehbauer (<a href="mailto:cgehbauer@lbl.gov">cgehbauer@lbl.gov</a>) - V 1.0</span><br />
+        </center></div>
+    </footer>
+</body>
+</html>

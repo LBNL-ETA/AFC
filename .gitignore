@@ -3,6 +3,7 @@ afc/resources/radiance/systems_*
 dev/newRadianceForecast/*.json
 dev/newRadianceJson/*.json
 creds_*.json
+user_config*.json
 
 # Python compiled files #
 #########################

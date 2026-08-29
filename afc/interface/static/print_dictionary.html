@@ -1,0 +1,50 @@
+<!-- Advanced Fenestration Controller (AFC) Copyright (c) 2023, The
+     Regents of the University of California, through Lawrence Berkeley
+     National Laboratory (subject to receipt of any required approvals
+     from the U.S. Dept. of Energy). All rights reserved. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Result</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/static/header.css" type="text/css"/>
+</head>
+<body class="body">
+    <div id="wrapper">
+        <center><h2>Advanced Fenestration Control</h2></center>
+        <hr>
+    </div>
+    <div id="wrapper">
+        <center><a href='/'>Preferences</a> |
+        <a href='/config/'>Configuration</a> |
+        <a href='/debug/'>Debug</a></center>
+        <hr>
+    </div>
+    <div id="wrapper"><center>
+
+<table>
+{% for key, value in sorted_dictionary %}
+<tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+{% endfor %}
+</table>
+
+{% if show_reset %}
+<form action='' method='post' onkeypress="return event.keyCode != 13;">
+<br /><br />
+<label>Reset configuration and start with new instance?</label><br />
+<label>Note: This will delete all settings!</label><br />
+<label><input name="reset_config" type="radio" value="0" checked="checked" /> False</label>
+<label><input name="reset_config" type="radio" value="1" /> True</label>
+<input type='submit' value='Reset' />
+</form>
+{% endif %}
+
+    </center></div>
+    <footer>
+        <hr>
+        <div id="wrapper"><center>
+            <span class="alignright">Christoph Gehbauer (<a href="mailto:cgehbauer@lbl.gov">cgehbauer@lbl.gov</a>) - V 1.0</span><br />
+        </center></div>
+    </footer>
+</body>
+</html>

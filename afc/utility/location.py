@@ -11,6 +11,8 @@ Location handling module.
 
 import json
 from datetime import datetime
+from pathlib import Path
+import pandas as pd
 import pytz
 import requests
 from timezonefinder import TimezoneFinder
@@ -49,6 +51,14 @@ def get_elevation(lat, lon):
     # Convert from json
     elevation = json.loads(response.content)["results"][0]["elevation"]
     return elevation
+
+def read_zipcodes(path):
+    """Read zip code CSV and return (state->cities dict, location dict)."""
+    df = pd.read_csv(Path(path))
+    df = df.dropna(how='any')
+    df = df.groupby(['state', 'city'])[['latitude', 'longitude']].mean()
+    states = pd.DataFrame(df.index.values.tolist()).groupby([0])[1].apply(list)
+    return states.to_dict(), df.to_dict()
 
 if __name__ == '__main__':
     lat = 37.87

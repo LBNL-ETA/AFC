@@ -41,6 +41,8 @@ setuptools.setup(
                           'radiance/*',
                           'utility/*',
                           'rctuning/*',
+                          'interface/*',
+                          'interface/static/*',
                           'resources/*',
                           'resources/*/*',
                           'resources/*/*/*',

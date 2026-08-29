@@ -7,16 +7,15 @@
 Configuration parser.
 """
 
-# pylint: disable=invalid-name, bare-except, too-many-statements
-# pylint: disable=too-many-locals, unused-import
+# pylint: disable=invalid-name, bare-except, too-many-statements, too-many-locals
 
 import os
 import json
 import warnings
 
-from afc.defaultConfig import default_parameter, ft_to_m
+from afc.defaultConfig import default_parameter
 from afc.radiance.configs import get_config
-from afc.utility.location import get_timezone, get_elevation
+from afc.utility.location import get_timezone
 
 try:
     root = os.path.dirname(os.path.abspath(__file__))
@@ -52,6 +51,20 @@ def read_json_config(config_path, json_only=False):
 
 DEFAULT_JSON_PATH = os.path.join(root, 'resources', 'config', 'example_config.json')
 DEFAULT_DICT = read_json_config(DEFAULT_JSON_PATH, json_only=True)
+
+_INTERFACE_PREFIX = 'interface_'
+_EXAMPLE_KEYS = set(DEFAULT_DICT.keys())
+
+def validate_config(cfg):
+    """Warn about keys missing from or unexpected in cfg compared to example_config."""
+    cfg_keys = {k for k in cfg if not k.startswith(_INTERFACE_PREFIX)}
+    example_keys = {k for k in _EXAMPLE_KEYS if not k.startswith(_INTERFACE_PREFIX)}
+    missing = example_keys - cfg_keys
+    extra = cfg_keys - example_keys
+    if missing:
+        print(f'WARNING: Keys missing from config: {sorted(missing)}')
+    if extra:
+        print(f'WARNING: Unexpected keys in config: {sorted(extra)}')
 
 def coerce_config_types(config):
     """Cast config values to types defined in example_config.json."""

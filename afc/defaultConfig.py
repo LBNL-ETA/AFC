@@ -28,15 +28,15 @@ try:
 except:
     root = os.getcwd()
 
+FT_TO_M = 0.3048
+
 def ft_to_m(k):
     """Convert feet to meter."""
-
-    return k * 0.3048
+    return k * FT_TO_M
 
 def ft2_to_m2(k):
     """Convert square feet to square meter."""
-
-    return k * (0.3048 ** 2)
+    return k * FT_TO_M ** 2
 
 def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
     """Default configuration for facade."""

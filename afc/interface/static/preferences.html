@@ -1,0 +1,50 @@
+<!-- Advanced Fenestration Controller (AFC) Copyright (c) 2023, The
+     Regents of the University of California, through Lawrence Berkeley
+     National Laboratory (subject to receipt of any required approvals
+     from the U.S. Dept. of Energy). All rights reserved. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Preferences</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/static/header.css" type="text/css"/>
+</head>
+<body class="body">
+    <div id="wrapper">
+        <center><h2>AFC User Interface</h2></center>
+        <hr>
+    </div>
+    <div id="wrapper">
+        <center><a href='/'>Preferences</a> |
+        <a href='/config/'>Configuration</a> |
+        <a href='/debug/'>Debug</a></center>
+        <hr>
+    </div>
+    <div id="wrapper"><center>
+
+<form action='' method='post' onkeypress="return event.keyCode != 13;">
+
+Zone Name:<br />
+<h2>{{ system_id }}</h2>
+<label>Room Brightness: </label><output name="brightness">{{ occupant_brightness }}</output>%<br/>
+<input id="slider" name="occupant_brightness" type="range" min="80" max="120" value="{{ occupant_brightness }}" step="10" oninput="brightness.value = occupant_brightness.value" style="width:250px; height:50px;" /><br/>
+<label>Glare Control: </label><output name="glare">{{ occupant_glare }}</output>%<br/>
+<input name="occupant_glare" type="range" min="80" max="120" value="{{ occupant_glare }}" step="10" oninput="glare.value = occupant_glare.value" style="width:250px; height:50px;"/><br/>
+<label>Is this a one-time override?:</label>
+<label><input name="interface_preference_permanent" type="radio" value="0" checked="checked" /> Yes</label>
+<label><input name="interface_preference_permanent" type="radio" value="1" /> No</label>
+<br /><br />
+<label>User Comment: </label><input maxlength="256" name="interface_preference_comment" type="text" value="Reason for change?" /><br/>
+<br />
+<input type='submit' value='Submit' />
+</form>
+
+    </center></div>
+    <footer>
+        <hr>
+        <div id="wrapper"><center>
+            <span class="alignright">Christoph Gehbauer (<a href="mailto:cgehbauer@lbl.gov">cgehbauer@lbl.gov</a>) - V 1.0</span><br />
+        </center></div>
+    </footer>
+</body>
+</html>
