@@ -8,10 +8,13 @@ Advanced Fenestration Controller
 Export AFC Systems module.
 """
 
+# pylint: disable=too-many-locals
+
 import os
 import json
 import shutil
 
+from afc.radiance.maps import generate_dependent_combinations_table
 from afc.resources.radiance.make_glazing_systems import (
     make_sage_systems,
     load_glazing_systems,
@@ -136,9 +139,95 @@ def group_glazing_systems(results_dir):
         )
 
 
+def generate_afc_systems(results_dir, output_path=None):
+    """Generate afc_systems.json from a make_systems results directory."""
+    if output_path is None:
+        output_path = os.path.join(ROOT, 'afc_systems.json')
+
+    with open(os.path.join(results_dir, 'window_systems.json'), encoding='utf-8') as f:
+        systems = json.loads(f.read())
+
+    windows_map = {
+        'ec': [0, 1, 2],
+        'shade': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        'blinds': [0, 1],
+    }
+
+    # legacy entry always included first for backward compatibility
+    afc_systems = {
+        'ec-71t': {
+            'type': 'ec',
+            'name': 'ec',
+            'windows': [0, 1, 2],
+            'states': [0, 1, 2, 3],
+            'fstate_initial': [3, 3, 3],
+            'tvis': [0.01, 0.06, 0.18, 0.6],
+            'window_ctrl_map': {},
+        }
+    }
+
+    # ec
+    ec_groups = {}
+    for sys in [s for s in systems if s.startswith('sec')]:
+        sys_name = f"ec_{sys.split('_')[0]}"
+        ec_groups.setdefault(sys_name, []).append(sys)
+    for sys_name, members in sorted(ec_groups.items()):
+        members_sorted = sorted(members) # dark to bright (same as forecast.py)
+        tvis = [systems[m]['system_results']['vlt'] for m in members_sorted]
+        n = len(tvis)
+        afc_systems[sys_name] = {
+            'type': 'ec',
+            'name': sys_name,
+            'windows': windows_map['ec'],
+            'states': list(range(n)),
+            'fstate_initial': [n - 1] * len(windows_map['ec']), # brightest
+            'tvis': tvis,
+            'window_ctrl_map': {},
+        }
+
+    # shade
+    for sys in [s for s in systems if '_sh' in s]:
+        ss = sys.split('_')
+        sys_name = f"shade_{ss[3]}_{ss[2]}"
+        base_sys = '_'.join(sys.split('_')[:2])
+        # sorted() matches forecast.py: base glass (higher tvis) sorts before shaded glass
+        members_sorted = sorted([base_sys, sys])
+        tvis = [systems[m]['system_results']['vlt'] for m in members_sorted]
+        n_windows = len(windows_map['shade'])
+        n_logical = len(generate_dependent_combinations_table(n_windows, list(range(len(tvis)))))
+        afc_systems[sys_name] = {
+            'type': 'shade',
+            'name': sys_name,
+            'windows': windows_map['shade'],
+            'states': list(range(len(tvis))),
+            'fstate_initial': [n_logical - 1], # brightest
+            'tvis': tvis,
+            'window_ctrl_map': {},
+        }
+
+    def _encode(obj, level, indent):
+        pad = ' ' * (indent * level)
+        pad_inner = ' ' * (indent * (level + 1))
+        if isinstance(obj, dict):
+            if not obj:
+                return '{}'
+            items = [f'{pad_inner}{json.dumps(k)}: {_encode(v, level + 1, indent)}'
+                     for k, v in obj.items()]
+            return '{\n' + ',\n'.join(items) + '\n' + pad + '}'
+        if isinstance(obj, list):
+            return '[' + ', '.join(json.dumps(v) for v in obj) + ']'
+        return json.dumps(obj)
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(_encode(afc_systems, 0, 2) + '\n')
+    return afc_systems
+
+
 if __name__ == "__main__":
     PATH_GS = "glazing_systems_20250417T160159.json"  # US only (glass)
     # make the systems
     temp_dir = make_systems(PATH_GS)
     # move to directories
     group_glazing_systems(temp_dir)
+    # generate afc_systems.json
+    generate_afc_systems(temp_dir)

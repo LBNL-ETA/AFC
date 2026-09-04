@@ -1,0 +1,65 @@
+{
+  "ec-71t": {
+    "type": "ec",
+    "name": "ec",
+    "windows": [0, 1, 2],
+    "states": [0, 1, 2, 3],
+    "fstate_initial": [3, 3, 3],
+    "tvis": [0.01, 0.06, 0.18, 0.6],
+    "window_ctrl_map": {}
+  },
+  "ec_sec02": {
+    "type": "ec",
+    "name": "ec_sec02",
+    "windows": [0, 1, 2],
+    "states": [0, 1, 2, 3],
+    "fstate_initial": [3, 3, 3],
+    "tvis": [0.0036952981460214715, 0.05468178665059934, 0.17075366016496044, 0.5833202739050172],
+    "window_ctrl_map": {}
+  },
+  "ec_sec03": {
+    "type": "ec",
+    "name": "ec_sec03",
+    "windows": [0, 1, 2],
+    "states": [0, 1, 2, 3],
+    "fstate_initial": [3, 3, 3],
+    "tvis": [0.0033032442448618707, 0.04882247064844899, 0.1522578066496327, 0.5214927755469515],
+    "window_ctrl_map": {}
+  },
+  "shade_sh2%d_i": {
+    "type": "shade",
+    "name": "shade_sh2%d_i",
+    "windows": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "states": [0, 1],
+    "fstate_initial": [10],
+    "tvis": [0.5509453497950713, 0.016509997599795143],
+    "window_ctrl_map": {}
+  },
+  "shade_sh2%b_i": {
+    "type": "shade",
+    "name": "shade_sh2%b_i",
+    "windows": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "states": [0, 1],
+    "fstate_initial": [10],
+    "tvis": [0.5509453497950713, 0.017490368628995202],
+    "window_ctrl_map": {}
+  },
+  "shade_sh5%d_i": {
+    "type": "shade",
+    "name": "shade_sh5%d_i",
+    "windows": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "states": [0, 1],
+    "fstate_initial": [10],
+    "tvis": [0.5509453497950713, 0.03648613201777047],
+    "window_ctrl_map": {}
+  },
+  "shade_sh5%b_i": {
+    "type": "shade",
+    "name": "shade_sh5%b_i",
+    "windows": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "states": [0, 1],
+    "fstate_initial": [10],
+    "tvis": [0.5509453497950713, 0.11587821654506841],
+    "window_ctrl_map": {}
+  }
+}

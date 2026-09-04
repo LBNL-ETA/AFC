@@ -12,6 +12,7 @@ Default configuration.
 
 import os
 import sys
+import json
 from doper.utility import default_output_list
 from doper.examples import default_parameter as default_parameter_doper
 
@@ -29,6 +30,10 @@ except:
     root = os.getcwd()
 
 FT_TO_M = 0.3048
+
+_AFC_SYSTEMS_PATH = os.path.join(root, 'resources', 'radiance', 'afc_systems.json')
+with open(_AFC_SYSTEMS_PATH, 'r', encoding='utf-8') as _f:
+    FACADE_SYSTEMS = json.load(_f)
 
 def ft_to_m(k):
     """Convert feet to meter."""
@@ -61,18 +66,13 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
     parameter['facade']['window_area'] = window_area # in m2
 
     # define facade
-    if facade_type == 'ec-71t':
-        parameter['facade']['type'] = 'ec'
-        parameter['facade']['name'] = 'ec'
-        parameter['facade']['windows'] = [0, 1, 2]
-        parameter['facade']['states'] = [0, 1, 2, 3] # dark to bright
-        parameter['facade']['fstate_initial'] = [3, 3, 3] # Initial state of facade
-        parameter['facade']['tvis'] = [0.01, 0.06, 0.18, 0.6] # dark to bright
-        parameter['facade']['window_ctrl_map'] = {} # only used for blinds and shades
-    elif isinstance(facade_type, dict):
+    if isinstance(facade_type, dict):
         parameter['facade'].update(facade_type)
+    elif facade_type in FACADE_SYSTEMS:
+        parameter['facade'].update(FACADE_SYSTEMS[facade_type])
     else:
-        raise ValueError(f'The facade type "{facade_type}" is not available.')
+        raise ValueError(f'The facade type "{facade_type}" is not available. '
+                         f'Choose from: {list(FACADE_SYSTEMS.keys())}')
 
     return parameter
 
