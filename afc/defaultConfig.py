@@ -340,6 +340,7 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     parameter['wrapper']['tariff_name'] = tariff_name
     parameter['wrapper']['compute_loads'] = False
     parameter['wrapper']['use_fallback'] = True
+    parameter['wrapper']['keep_input_data'] = True # keep the mpc input data in output df 
 
     return parameter
 

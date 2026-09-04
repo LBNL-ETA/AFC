@@ -479,6 +479,8 @@ class Controller(eFMU):
                 if self.sp_processor is not None:
                     setpoints = self.sp_processor(df, self.parameter)
 
+                if not self.parameter['wrapper']['keep_input_data']:
+                    df = df.loc[:, ~df.columns.isin(data.columns)]
                 df = cast_df_to_float(df)
                 out_output_data = df.to_json()
                 out_duration['outputs'] = time.time() - st1
