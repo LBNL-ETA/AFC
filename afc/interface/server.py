@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / 'static'
 AFC_CFG_PATH = ROOT / 'user_config.json'
 ZIP_CSV_PATH = ROOT / 'zip_locations.csv'
+AFC_SYSTEMS_PATH = Path(__file__).resolve().parents[1] / 'resources' / 'radiance' / 'afc_systems.json'
 
 # occupant distance levels as fractions of room depth (location 1..5)
 _LOC_FRACTIONS = [0.0, 0.25, 0.5, 0.75, 1.0] # (loc-1)/4 for loc=1..5
@@ -184,12 +185,14 @@ def config():
     if request.method == 'GET':
         temp, _ = get_current_config()
         states = app.config['DICT_STATE']
+        afc_systems = app.config['AFC_SYSTEMS']
         return render_page(
             'configuration.html',
             dict_state=sorted(states.keys()),
             dict_state_all=json.dumps(states),
             set_initial=_build_config_initial(temp),
             tariff_map=TARIFF_MAP,
+            afc_systems=afc_systems,
         )
     inputs = _process_config_post()
     temp, _ = get_current_config()
@@ -244,6 +247,8 @@ if __name__ == '__main__':
     dict_state, dict_locs = read_zipcodes(ZIP_CSV_PATH)
     app.config['DICT_STATE'] = dict_state
     app.config['DICT_LOCS'] = dict_locs
+    afc_systems_raw = json.loads(AFC_SYSTEMS_PATH.read_text(encoding='utf-8'))
+    app.config['AFC_SYSTEMS'] = sorted(afc_systems_raw.keys())
     print(f'AFC User Interface running at http://{args.host}:{args.port}/')
     print(f'Config file: {AFC_CFG_PATH}')
     app.run(host=args.host, port=args.port, debug=False)

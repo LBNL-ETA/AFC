@@ -276,20 +276,17 @@ function update_drawings() {
 
 <b>Shading System:</b><br />
 Type: <select name="system_type">
-    <option value="ec-71t">Electrochromic (Model: Sage)</option>
-    <!-- TODO: additional shading systems
-    <option value="EC-AA">Electrochromic (Model: XX)</option>
-    <option value="RS-AA">Rollershade (Model: XX)</option>
-    <option value="VB-AA">Venetian Blinds (Model: XX)</option>
-    -->
+{% for key in afc_systems %}
+    <option value="{{ key }}">{{ key }}</option>
+{% endfor %}
 </select>
+<!-- TODO: Horizontal Zones – may be added in future
 Horizontal Zones: <select name="system_zones">
-    <!-- TODO: additional shading zones
     <option value="1">1</option>
     <option value="2">2</option>
-    -->
     <option value="3">3</option>
 </select>
+-->
 <br /><br />
 
 <b>Lighting System:</b><br />
