@@ -2,6 +2,7 @@
     "building_age": "new_constr",
     "debug": false,
     "interface_status": "New Configuration.",
+    "interface_unit_preference": "m",
     "location_city": "Berkeley",
     "location_elevation": 51.8,
     "location_latitude": 37.85,

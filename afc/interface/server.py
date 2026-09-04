@@ -222,12 +222,28 @@ def _parse_args():
                         help='Host to bind (default: 0.0.0.0)')
     parser.add_argument('--port', type=int, default=8000,
                         help='Port to listen on (default: 8000)')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--config-dir', metavar='PATH',
+                       help='Folder to store user_config.json (default: script directory)')
+    group.add_argument('--config-file', metavar='PATH',
+                       help='Path to an existing JSON config file to use as the active config')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = _parse_args()
+    if args.config_file:
+        cfg_path = Path(args.config_file).resolve()
+        if not cfg_path.is_file():
+            raise SystemExit(f'ERROR: --config-file does not exist: {cfg_path}')
+        AFC_CFG_PATH = cfg_path
+    elif args.config_dir:
+        cfg_dir = Path(args.config_dir).resolve()
+        if not cfg_dir.is_dir():
+            raise SystemExit(f'ERROR: --config-dir does not exist: {cfg_dir}')
+        AFC_CFG_PATH = cfg_dir / 'user_config.json'
     dict_state, dict_locs = read_zipcodes(ZIP_CSV_PATH)
     app.config['DICT_STATE'] = dict_state
     app.config['DICT_LOCS'] = dict_locs
     print(f'AFC User Interface running at http://{args.host}:{args.port}/')
+    print(f'Config file: {AFC_CFG_PATH}')
     app.run(host=args.host, port=args.port, debug=False)

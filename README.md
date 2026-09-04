@@ -25,6 +25,13 @@ The following link permits users to clone the source directory containing the [A
 
 Alternatively, AFC can be directly installed with `pip install git+https://github.com/LBNL-ETA/AFC`.
 
+## User Interface
+AFC includes a Flask-based web interface for generating and managing the configuration file (`user_config.json`). See the [interface README](afc/interface/README.md) for full usage instructions including Docker setup and all available options.
+
+```bash
+python3 afc/interface/server.py
+```
+
 ## Use
 Standard usage of the AFC package follows the sequence of steps outlined in the example here.
 
