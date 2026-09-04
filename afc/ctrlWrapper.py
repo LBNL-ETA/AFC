@@ -24,7 +24,7 @@ import traceback
 import numpy as np
 import pandas as pd
 
-from fmlc.baseclasses import eFMU
+from fmlc import eFMU
 from doper.utility import resolve_wrapper_callable
 
 try:
@@ -38,13 +38,20 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 map_weather = {'dni':'weaHDirNor', 'dhi':'weaHDifHor'}
 
+def cast_df_to_float(df, fill_value=-1):
+    """Cast DataFrame columns to float where possible, leaving others unchanged."""
+    for col in df.columns:
+        try:
+            df[col] = df[col].astype(float).fillna(fill_value)
+        except (ValueError, TypeError):
+            pass
+    return df
+
 class Controller(eFMU):
     """Main controller wrapper class for the AFC."""
 
     def __init__(self):
-
         super().__init__()
-
         self.input = {
             'input-data': None,
             'wf-all': None,
@@ -64,7 +71,7 @@ class Controller(eFMU):
             'output-data': None,
             'valid': None
         }
-        self.init = True
+        self.init = False
         self.root = root
 
         # Placeholder
@@ -138,50 +145,64 @@ class Controller(eFMU):
         self.data.to_csv(os.path.join(log_dir, fname+'.csv'))
 
     def compute(self):
-        """Main compute function."""
+        """Run one control cycle and return a status string."""
+
+        st = time.time()
+        self.msg = ''
+        setpoints = {}
+        out_duration = None
+        out_opt_stats = None
+        out_glaremode = None
+        out_ctrl_facade = None
+        out_ctrl_thermostat = None
+        out_ctrl_troom = None
+        out_output_data = None
+        out_valid = None
+
+        self.msg += self.check_data(self.input['input-data'], True)
 
         try:
-            st = time.time()
-            self.msg = ''
-            setpoints = {}
 
-            # Parse input dataframe
-            inputs = pd.read_json(io.StringIO(self.input['input-data']))
-            inputs.index = pd.to_datetime(inputs.index)
+            if not self.msg:
 
-            # configuration
-            self.parameter = self.input['parameter']
+                # Parse input dataframe
+                inputs = pd.read_json(io.StringIO(self.input['input-data']))
+                inputs.index = pd.to_datetime(inputs.index)
 
-            # add demand profiles
-            if self.parameter['wrapper']['compute_loads']:
-                inputs = make_inputs(self.parameter, inputs, return_json=False)['input-data']
+                # configuration
+                self.parameter = self.input['parameter']
 
-            # Setup controller
-            if self.init:
+                # add demand profiles
+                if self.parameter['wrapper']['compute_loads']:
+                    inputs = make_inputs(self.parameter, inputs, return_json=False)['input-data']
 
-                self.init_functions()
+                # Setup controller
+                if not self.init:
 
-                # Radiance forecaster
-                rad_paths = self.parameter['radiance']['paths']
-                filestruct = {}
-                filestruct['glazing_systems'] = rad_paths['rad_systems']
-                filestruct['matrices'] = rad_paths['rad_mtx']
-                window_ctrl_map = self.parameter['facade']['window_ctrl_map']
-                reflectances = self.parameter['radiance']['reflectances']
-                self.forecaster = \
-                    self.forecaster.Forecast(rad_paths['rad_config'],
-                                             regenerate=self.parameter['radiance']['regenerate'],
-                                             location=self.parameter['radiance']['location'],
-                                             facade_type=self.parameter['facade']['type'],
-                                             window_ctrl_map=window_ctrl_map,
-                                             wpi_loc=self.parameter['radiance']['wpi_loc'],
-                                             view_config=self.parameter['radiance']['view'],
-                                             filestruct=filestruct,
-                                             dimensions=self.parameter['radiance']['dimensions'],
-                                             wpi_all=self.parameter['radiance']['wpi_all'],
-                                             wpi_config=self.parameter['radiance']['wpi_config'],
-                                             reflectances=reflectances,
-                                             n_cpus=self.parameter['radiance']['n_cpus'])
+                    self.init_functions()
+
+                    # Radiance forecaster
+                    rad_paths = self.parameter['radiance']['paths']
+                    filestruct = {}
+                    filestruct['glazing_systems'] = rad_paths['rad_systems']
+                    filestruct['matrices'] = rad_paths['rad_mtx']
+                    window_ctrl_map = self.parameter['facade']['window_ctrl_map']
+                    reflectances = self.parameter['radiance']['reflectances']
+                    rad = self.parameter['radiance']
+                    self.forecaster = \
+                        self.forecaster.Forecast(rad_paths['rad_config'],
+                                                 regenerate=rad['regenerate'],
+                                                 location=rad['location'],
+                                                 facade_type=self.parameter['facade']['type'],
+                                                 window_ctrl_map=window_ctrl_map,
+                                                 wpi_loc=rad['wpi_loc'],
+                                                 view_config=rad['view'],
+                                                 filestruct=filestruct,
+                                                 dimensions=rad['dimensions'],
+                                                 wpi_all=rad['wpi_all'],
+                                                 wpi_config=rad['wpi_config'],
+                                                 reflectances=reflectances,
+                                                 n_cpus=rad['n_cpus'])
 
                 # Update logical window system
                 self.facade_static_param = {
@@ -271,217 +292,219 @@ class Controller(eFMU):
                     spec_name='sp_processor'
                 )
 
-            # Compute radiance
-            st1 = time.time()
-            self.output['duration'] = {}
+                # Compute radiance
+                st1 = time.time()
+                out_duration = {}
 
-            if self.parameter['wrapper']['precompute_radiance']:
-                data = self.forecaster.loc[inputs.index]
-            else:
-                data = self.forecaster.compute2(inputs[['dni','dhi']])
-            # cutoff
-            rad_cutoff = self.parameter['facade']['rad_cutoff']
-            for k in rad_cutoff.keys():
-                for c in data.columns:
-                    if f'{k}_' in c:
-                        data.loc[:,c] = data[c].mask(data[c] < rad_cutoff[k][0], 0)
-                        data.loc[:,c] = data[c].mask(data[c] > rad_cutoff[k][1], rad_cutoff[k][1])
-            self.output['duration']['radiance'] = time.time() - st1
+                if self.parameter['wrapper']['precompute_radiance']:
+                    data = self.forecaster.loc[inputs.index]
+                else:
+                    data = self.forecaster.compute2(inputs[['dni','dhi']])
+                # cutoff
+                rad_cutoff = self.parameter['facade']['rad_cutoff']
+                for k in rad_cutoff.keys():
+                    for c in data.columns:
+                        if f'{k}_' in c:
+                            data.loc[:,c] = data[c].mask(data[c] < rad_cutoff[k][0], 0)
+                            cutoff_hi = rad_cutoff[k][1]
+                            data.loc[:,c] = data[c].mask(data[c] > cutoff_hi, cutoff_hi)
+                out_duration['radiance'] = time.time() - st1
 
-            # Glare handler
-            st1 = time.time()
-            if self.parameter['wrapper']['precompute_radiance']:
-                wf = self.glare_handler.loc[inputs.index]
-            else:
-                wf = inputs[['dni','dhi']].copy(deep=True).rename(columns=map_weather)
-                for ix in wf.index:
-                    glare_ctrl = self.glare_handler.do_step(ix, {'weather_data': wf})
-                    for i, g in enumerate(self.glare_handler.gmodes):
-                        wf.loc[ix, f'zone{i}_gmode'] = int(g)
-                    self.glare_ctrl_cols = [f'glare_ctrl_{i}' for i in range(len(glare_ctrl[0]))]
-                    wf.loc[ix, self.glare_ctrl_cols] = glare_ctrl[0]
+                # Glare handler
+                st1 = time.time()
+                if self.parameter['wrapper']['precompute_radiance']:
+                    wf = self.glare_handler.loc[inputs.index]
+                else:
+                    wf = inputs[['dni','dhi']].copy(deep=True).rename(columns=map_weather)
+                    for ix in wf.index:
+                        glare_ctrl = self.glare_handler.do_step(ix, {'weather_data': wf})
+                        for i, g in enumerate(self.glare_handler.gmodes):
+                            wf.loc[ix, f'zone{i}_gmode'] = int(g)
+                        n_glare = len(glare_ctrl[0])
+                        self.glare_ctrl_cols = [f'glare_ctrl_{i}' for i in range(n_glare)]
+                        wf.loc[ix, self.glare_ctrl_cols] = glare_ctrl[0]
 
-            #flip_z = 'ec' in self.parameter['facade']['type']
-            gmodes = []
-            # Update logical window system
-            self.parameter['facade'].update(self.facade_static_param)
-            for nz in self.parameter['facade']['logical_windows']:
-                wf_key = f'zone{nz}_gmode'
-                gmodes.append(wf.loc[wf.index[0], wf_key])
-                # non-dark states to clear
-                for t in self.parameter['facade']['logical_window_states'][1:]:
-                    #wf_key = f'zone{t if not flip_z else nz}_gmode'
-                    #if not wf_key in wf.columns:
-                    #    wf_key = f'zone{t-1 if not flip_z else nz-1}_gmode'
-                    data[f'ev_{nz}_{t}'] = data[f'ev_{nz}_{t}'].mask( \
-                        (wf[wf_key] > 0) & (data[f'ev_{nz}_{t}']>0), 2e4)
-            self.output['duration']['glare'] = time.time() - st1
+                #flip_z = 'ec' in self.parameter['facade']['type']
+                gmodes = []
+                # Update logical window system
+                self.parameter['facade'].update(self.facade_static_param)
+                for nz in self.parameter['facade']['logical_windows']:
+                    wf_key = f'zone{nz}_gmode'
+                    gmodes.append(wf.loc[wf.index[0], wf_key])
+                    # non-dark states to clear
+                    for t in self.parameter['facade']['logical_window_states'][1:]:
+                        #wf_key = f'zone{t if not flip_z else nz}_gmode'
+                        #if not wf_key in wf.columns:
+                        #    wf_key = f'zone{t-1 if not flip_z else nz-1}_gmode'
+                        data[f'ev_{nz}_{t}'] = data[f'ev_{nz}_{t}'].mask( \
+                            (wf[wf_key] > 0) & (data[f'ev_{nz}_{t}']>0), 2e4)
+                out_duration['glare'] = time.time() - st1
 
-            # Compute other inputs
-            data = pd.concat([data, inputs], axis=1)
-            data['oat'] = inputs['temp_air']
-            data['wind_speed'] = inputs['wind_speed']
-            data['battery_0_avail'] = 0
-            data['battery_0_demand'] = 0
-            data['battery_reg'] = 0
+                # Compute other inputs
+                data = pd.concat([data, inputs], axis=1)
+                data['oat'] = inputs['temp_air']
+                data['wind_speed'] = inputs['wind_speed']
+                data['battery_0_avail'] = 0
+                data['battery_0_demand'] = 0
+                data['battery_reg'] = 0
 
-            # Update SOCs
-            if isinstance(self.input['temps-initial'], str):
-                self.input['temps-initial'] = json.loads(self.input['temps-initial'])
-            self.parameter['zone']['temps_initial'] = self.input['temps-initial']
-            if isinstance(self.input['facade-initial'], str):
-                self.input['facade-initial'] = json.loads(self.input['facade-initial'])
-            self.parameter['facade']['fstate_initial'] = self.input['facade-initial']
+                # Update SOCs
+                if isinstance(self.input['temps-initial'], str):
+                    self.input['temps-initial'] = json.loads(self.input['temps-initial'])
+                self.parameter['zone']['temps_initial'] = self.input['temps-initial']
+                if isinstance(self.input['facade-initial'], str):
+                    self.input['facade-initial'] = json.loads(self.input['facade-initial'])
+                self.parameter['facade']['fstate_initial'] = self.input['facade-initial']
 
-            # Make sure temp_initial is feasible
-            dead_band = 1e-2
-            cool_set = data['temp_room_max'].values[0]
-            heat_set = data['temp_room_min'].values[0]
-            troom = self.parameter['zone']['temps_initial'][0]
-            troom = max(heat_set+dead_band, min(cool_set-dead_band, troom))
-            self.parameter['zone']['temps_initial'][0] = troom
+                # Make sure temp_initial is feasible
+                dead_band = 1e-2
+                cool_set = data['temp_room_max'].values[0]
+                heat_set = data['temp_room_min'].values[0]
+                troom = self.parameter['zone']['temps_initial'][0]
+                troom = max(heat_set+dead_band, min(cool_set-dead_band, troom))
+                self.parameter['zone']['temps_initial'][0] = troom
 
-            # Variable timestep
-            st1 = time.time()
-            if self.parameter['wrapper']['resample_variable_ts']:
+                # Variable timestep
+                st1 = time.time()
+                if self.parameter['wrapper']['resample_variable_ts']:
 
-                # remove string columns
-                string_cols = data.columns[data.apply(lambda x: x.dtype == 'object').values]
-                if len(string_cols) > 0:
-                    self.msg += f'WARNING: Removing string columns: {string_cols}'
-                    data = data.drop(columns=string_cols)
+                    # remove string columns
+                    string_cols = data.columns[data.apply(lambda x: x.dtype == 'object').values]
+                    if len(string_cols) > 0:
+                        self.msg += f'WARNING: Removing string columns: {string_cols}'
+                        data = data.drop(columns=string_cols)
 
-                # check columns
-                cols = self.parameter['wrapper']['cols_fill']
-                if not 'temp_room_max' in cols[0].lower():
-                    print('ERROR: "temp_room_max" is not in first column of "cols_fill".')
+                    # check columns
+                    cols = self.parameter['wrapper']['cols_fill']
+                    if not 'temp_room_max' in cols[0].lower():
+                        print('ERROR: "temp_room_max" is not in first column of "cols_fill".')
 
-                # ensure ramp when occupancy starts
-                for ix in data.index[data[cols[0]].diff()<0]:
-                    ix_st = max(data.index[0]+pd.DateOffset(minutes=5),
-                                ix-pd.DateOffset(minutes=55))
-                    data.loc[ix_st:ix-pd.DateOffset(minutes=5), cols] = np.nan
-                resample_ts = (data.index[1] - data.index[0]).total_seconds()
-                data = data.resample(f'{int(resample_ts)}s').interpolate()
+                    # ensure ramp when occupancy starts
+                    for ix in data.index[data[cols[0]].diff()<0]:
+                        ix_st = max(data.index[0]+pd.DateOffset(minutes=5),
+                                    ix-pd.DateOffset(minutes=55))
+                        data.loc[ix_st:ix-pd.DateOffset(minutes=5), cols] = np.nan
+                    resample_ts = (data.index[1] - data.index[0]).total_seconds()
+                    data = data.resample(f'{int(resample_ts)}s').interpolate()
 
-                # ensure resampling when occupancy ends
-                for ix in data.index[data[cols[0]].diff()>0]:
-                    data.loc[ix, cols] = \
-                        data.loc[data.index[max(0, data.index.get_loc(ix)-1)], cols].values
+                    # ensure resampling when occupancy ends
+                    for ix in data.index[data[cols[0]].diff()>0]:
+                        data.loc[ix, cols] = \
+                            data.loc[data.index[max(0, data.index.get_loc(ix)-1)], cols].values
 
-                # limit starting ramp
-                t_init = self.parameter['zone']['temps_initial'][0]
-                data[cols[0]] = \
-                    np.min([[t_init+(i+1)*self.parameter['wrapper']['limit_slope'] \
-                             for i in range(len(data))], data[cols[0]]], axis=0)
-                data[cols[1]] = \
-                    np.max([[t_init-(i+1)*self.parameter['wrapper']['limit_slope'] \
-                             for i in range(len(data))], data[cols[1]]], axis=0)
-                # make sure no temperature setpoint overlap
-                data[cols[1]] = data[cols[1]].mask(data[cols[1]] > data[cols[0]],
-                                                   data[cols[0]]-dead_band)
+                    # limit starting ramp
+                    t_init = self.parameter['zone']['temps_initial'][0]
+                    data[cols[0]] = \
+                        np.min([[t_init+(i+1)*self.parameter['wrapper']['limit_slope'] \
+                                 for i in range(len(data))], data[cols[0]]], axis=0)
+                    data[cols[1]] = \
+                        np.max([[t_init-(i+1)*self.parameter['wrapper']['limit_slope'] \
+                                 for i in range(len(data))], data[cols[1]]], axis=0)
+                    # make sure no temperature setpoint overlap
+                    data[cols[1]] = data[cols[1]].mask(data[cols[1]] > data[cols[0]],
+                                                       data[cols[0]]-dead_band)
 
-                # resample
-                data = self.resample_variable_ts(data, \
-                    reduced_start=int(self.parameter['wrapper']['reduced_start']),
-                    reduced_ts=int(self.parameter['wrapper']['reduced_ts']),
-                    cols_fill=self.parameter['wrapper']['cols_fill'])
-            self.output['duration']['varts'] = time.time() - st1
+                    # resample
+                    data = self.resample_variable_ts(data, \
+                        reduced_start=int(self.parameter['wrapper']['reduced_start']),
+                        reduced_ts=int(self.parameter['wrapper']['reduced_ts']),
+                        cols_fill=self.parameter['wrapper']['cols_fill'])
+                out_duration['varts'] = time.time() - st1
 
-            # Compute and update tariff
-            data, _ = self.compute_periods(data, self.tariff, self.parameter)
+                # Compute and update tariff
+                data, _ = self.compute_periods(data, self.tariff, self.parameter)
 
-            # Optional pre-processing hook
-            if self.pre_processor is not None:
-                data = self.pre_processor(data, self.parameter)
+                # Optional pre-processing hook
+                if self.pre_processor is not None:
+                    data = self.pre_processor(data, self.parameter)
 
-            # Check for nan
-            if pd.isnull(data).any().any():
-                print(data)
-                data.to_csv('error_controller_inputs.csv')
-                raise ValueError('NAN values in MPC input. Index:',
-                                 data.index[pd.isnull(data).any().to_numpy().nonzero()[0]])
+                # Check for nan
+                if pd.isnull(data).any().any():
+                    print(data)
+                    data.to_csv('error_controller_inputs.csv')
+                    raise ValueError('NAN values in MPC input. Index:',
+                                     data.index[pd.isnull(data).any().to_numpy().nonzero()[0]])
 
-            # Run optimization
-            st1 = time.time()
-            self.data = data.round(self.parameter['wrapper']['inputs_cutoff'])
+                # Run optimization
+                st1 = time.time()
+                self.data = data.round(self.parameter['wrapper']['inputs_cutoff'])
 
-            # Store for debug
-            # data.to_csv('inputs_{}.csv'.format(data.index[0]))
-            # cfg = {}
-            # cfg['parameter'] = self.parameter
-            # cfg['options'] = self.parameter['options']
-            # with open('cfg_{}.json'.format(data.index[0]), 'w') as f:
-            #     f.write(json.dumps(cfg))
+                # Store for debug
+                # data.to_csv('inputs_{}.csv'.format(data.index[0]))
+                # cfg = {}
+                # cfg['parameter'] = self.parameter
+                # cfg['options'] = self.parameter['options']
+                # with open('cfg_{}.json'.format(data.index[0]), 'w') as f:
+                #     f.write(json.dumps(cfg))
 
-            printing = self.parameter['wrapper']['printing']
-            self.res = \
-                self.controller.do_optimization(self.data,
-                                                parameter=self.parameter,
-                                                options=self.parameter['solver_options'],
-                                                tee=printing,
-                                                print_error=printing)
-            duration, objective, df, model, result, termination, parameter = self.res
-            df = pd.concat([df, data], axis=1)
-            self.output['duration']['optall'] = time.time() - st1
+                printing = self.parameter['wrapper']['printing']
+                self.res = \
+                    self.controller.do_optimization(self.data,
+                                                    parameter=self.parameter,
+                                                    options=self.parameter['solver_options'],
+                                                    tee=printing,
+                                                    print_error=printing)
+                duration, objective, df, model, result, termination, parameter = self.res
+                df = pd.concat([df, data], axis=1)
+                out_duration['optall'] = time.time() - st1
 
-            # Write outputs
-            st1 = time.time()
-            self.output['opt-stats'] = {'duration': float(duration),
-                                        'termination': str(termination),
-                                        'objective': float(objective) if objective else None}
-            self.output['valid'] = bool(objective)
-            self.output['glaremode'] = list(gmodes)
+                # Write outputs
+                st1 = time.time()
+                out_opt_stats = {'duration': float(duration),
+                                 'termination': str(termination),
+                                 'objective': float(objective) if objective else None}
+                out_valid = bool(objective)
+                out_glaremode = list(gmodes)
 
-            # Compute thermostat setpoints
-            thermostat = compute_thermostat_setpoints(
-                df, cool_set, heat_set, self.output['valid'], True, False
-            )
-            self.output['ctrl-thermostat'] = thermostat
-            if self.output['valid']:
-                self.output['ctrl-troom'] = float(df['Temperature 0 [C]'].values[1])
-            else:
-                self.output['ctrl-troom'] = None
+                # Compute thermostat setpoints
+                out_ctrl_thermostat = compute_thermostat_setpoints(
+                    df, cool_set, heat_set, out_valid, True, False
+                )
+                if out_valid:
+                    out_ctrl_troom = float(df['Temperature 0 [C]'].values[1])
 
-            # Compute shade state
-            if self.output['valid']:
-                # apply mpc setpoint
-                uShade = df[[f'Facade State {z}' for \
-                    z in self.parameter['facade']['logical_windows']]].iloc[0].values
-                self.output['ctrl-facade'] = [round(float(u), 1) for u in uShade]
-            elif self.parameter['wrapper']['use_fallback']:
-                # use heuristic control
-                ix = wf.index[0]
-                uShade = [round(float(u), 1) for u in wf.loc[ix, self.glare_ctrl_cols]]
-                self.output['ctrl-facade'] = uShade
-            else:
-                # hold previous value
-                # self.output['ctrl-facade'] = None
-                pass
+                # Compute shade state
+                if out_valid:
+                    # apply mpc setpoint
+                    uShade = df[[f'Facade State {z}' for \
+                        z in self.parameter['facade']['logical_windows']]].iloc[0].values
+                    out_ctrl_facade = [round(float(u), 1) for u in uShade]
+                elif self.parameter['wrapper']['use_fallback']:
+                    # use heuristic control
+                    ix = wf.index[0]
+                    uShade = [round(float(u), 1) for u in wf.loc[ix, self.glare_ctrl_cols]]
+                    out_ctrl_facade = uShade
 
-            # Setpoint processor
-            if self.sp_processor is not None:
-                setpoints = self.sp_processor(df, self.parameter)
-            self.output['setpoints'] = setpoints
+                # Setpoint processor
+                if self.sp_processor is not None:
+                    setpoints = self.sp_processor(df, self.parameter)
 
-            df = df.astype(float).fillna(-1)
-            self.output['output-data'] = df.to_json()
-            self.output['duration']['outputs'] = time.time() - st1
-            self.output['duration']['all'] = time.time() - st
+                df = cast_df_to_float(df)
+                out_output_data = df.to_json()
+                out_duration['outputs'] = time.time() - st1
+                out_duration['all'] = time.time() - st
 
-            # Store if error or timeout
-            opt_timeout = self.output['duration']['all'] > self.parameter['wrapper']['log_overtime']
-            if (not objective) or opt_timeout:
-                self.log_results()
+                # Store if error or timeout
+                opt_timeout = out_duration['all'] > self.parameter['wrapper']['log_overtime']
+                if (not objective) or opt_timeout:
+                    self.log_results()
 
-            self.init = False
-            self.msg += self.standard_report(self.res)
+                self.init = True
+                self.msg += self.standard_report(self.res)
 
         except Exception as e:
             self.msg += f'\nERROR: {e}\n\n{traceback.format_exc()}'
-            for k in self.output:
-                self.output[k] = None
-        return self.msg
+
+        self.output['duration'] = out_duration
+        self.output['opt-stats'] = out_opt_stats
+        self.output['glaremode'] = out_glaremode
+        self.output['ctrl-facade'] = out_ctrl_facade
+        self.output['ctrl-thermostat'] = out_ctrl_thermostat
+        self.output['ctrl-troom'] = out_ctrl_troom
+        self.output['setpoints'] = setpoints
+        self.output['output-data'] = out_output_data
+        self.output['valid'] = out_valid
+        return 'Done.' if not self.msg else self.msg
 
 def make_inputs(parameter, df, ext_df=pd.DataFrame(), return_json=True):
     """Utility function to make inputs."""
