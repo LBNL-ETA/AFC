@@ -348,7 +348,7 @@ class Controller(eFMU):
                 data['battery_0_demand'] = 0
                 data['battery_reg'] = 0
 
-                # Update SOCs
+                # Update initial states
                 if isinstance(self.input['temps-initial'], str):
                     self.input['temps-initial'] = json.loads(self.input['temps-initial'])
                 self.parameter['zone']['temps_initial'] = self.input['temps-initial']

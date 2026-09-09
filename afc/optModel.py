@@ -225,7 +225,9 @@ def add_thermal(model, inputs, parameter):
 
     def der_fstate(model, ts, zone):
         if ts == model.ts.at(1):
-            return model.der_fstate[ts, zone] == 0
+            return model.der_fstate[ts, zone] == \
+                model.fstate[ts, zone] \
+                - parameter['facade']['fstate_initial'][zone]
         return model.der_fstate[ts, zone] == \
             model.fstate[ts, zone] \
             - model.fstate[ts-model.timestep[ts], zone]
