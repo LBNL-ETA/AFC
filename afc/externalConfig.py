@@ -13,7 +13,7 @@ import os
 import json
 import warnings
 
-from afc.defaultConfig import default_parameter
+from afc.defaultConfig import default_parameter, ft2_to_m2
 from afc.radiance.configs import get_config
 from afc.utility.location import get_timezone
 
@@ -157,7 +157,7 @@ def config_from_dict(config):
     parameter['radiance']['paths']['rad_systems'] = filestruct['glazing_systems']
     parameter['radiance']['paths']['rad_mtx'] = filestruct['matrices']
 
-    # Update building construction based on its age
+    # Update building construction based on its age (71T sized with medium office materials)
     rc_param = {
         'Ci': 492790.0,
         'Cs': 3765860.0,
@@ -166,8 +166,8 @@ def config_from_dict(config):
         'Rw1w2': 0.144256,
         'Rw2i': 0.000257
     }
-    area_ratio = config['room_width'] * config['room_depth'] / 150
-    facade_ratio = config['room_width'] * config['room_height'] / 90
+    area_ratio = config['room_width'] * config['room_depth'] / ft2_to_m2(150) # 10 * 15 ft
+    facade_ratio = config['room_width'] * config['room_height'] / ft2_to_m2(90) # 10 * 9 ft
     if config['building_age'] == 'new_constr':
         parameter['zone']['param']['Ci'] = rc_param['Ci'] * area_ratio
         parameter['zone']['param']['Cs'] = rc_param['Cs'] * area_ratio / 2
