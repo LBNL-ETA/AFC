@@ -25,7 +25,9 @@ ROOT = Path(__file__).resolve().parent
 STATIC_DIR = ROOT / 'static'
 AFC_CFG_PATH = ROOT / 'user_config.json'
 ZIP_CSV_PATH = ROOT / 'zip_locations.csv'
-AFC_SYSTEMS_PATH = Path(__file__).resolve().parents[1] / 'resources' / 'radiance' / 'afc_systems.json'
+AFC_SYSTEMS_PATH = (
+    Path(__file__).resolve().parents[1] / 'resources' / 'radiance' / 'afc_systems.json'
+)
 
 # occupant distance levels as fractions of room depth (location 1..5)
 _LOC_FRACTIONS = [0.0, 0.25, 0.5, 0.75, 1.0] # (loc-1)/4 for loc=1..5
@@ -65,7 +67,7 @@ def put_current_config(cfg):
         postfix = dtm.datetime.now().strftime('%Y%m%dT%H%M%S')
         backup = AFC_CFG_PATH.with_name(AFC_CFG_PATH.stem + f'_backup{postfix}.json')
         AFC_CFG_PATH.rename(backup)
-    AFC_CFG_PATH.write_text(json.dumps(cfg, indent=2))
+    AFC_CFG_PATH.write_text(json.dumps(cfg, indent=2), encoding='utf-8')
 
 def del_current_config():
     """Back up and remove the current config, reverting to defaults on next load."""
