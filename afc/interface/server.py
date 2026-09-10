@@ -111,6 +111,11 @@ def _build_config_initial(temp):
         form_name = _INTERFACE_FORM_MAP[k] if k in _INTERFACE_FORM_MAP else k
         if k in _DIM_FIELDS:
             v = round(float(v) * m_to_ft, 1) if unit_pref == 'ft' else round(float(v), 1)
+            js += (
+                f"var _e=document.getElementById('{form_name}');"
+                f"if(_e){{_e.value='{v}';_e.dataset.unit='{unit_pref}';}}\n"
+            )
+            continue
         js += f"var _e=document.getElementsByName('{form_name}');if(_e.length)_e[0].value='{v}';\n"
     # restore elevation in display unit
     elev_disp = round(float(temp['location_elevation']) * m_to_ft, 1) \
