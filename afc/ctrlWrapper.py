@@ -445,6 +445,8 @@ class Controller(eFMU):
                                                     tee=printing,
                                                     print_error=printing)
                 duration, objective, df, model, result, termination, parameter = self.res
+                if df.empty:
+                    df = df.reindex(data.index).fillna(-1)
                 df = pd.concat([df, data], axis=1)
                 out_duration['optall'] = time.time() - st1
 
@@ -454,6 +456,8 @@ class Controller(eFMU):
                                  'termination': str(termination),
                                  'objective': float(objective) if objective else None}
                 out_valid = bool(objective)
+                if not out_valid:
+                    self.msg += f'Optimization infeasible: {out_opt_stats}'
                 out_glaremode = list(gmodes)
 
                 # Compute thermostat setpoints
@@ -492,7 +496,6 @@ class Controller(eFMU):
                     self.log_results()
 
                 self.init = True
-                #self.msg += self.standard_report(self.res)
 
         except Exception as e:
             self.msg += f'\nERROR: {e}\n\n{traceback.format_exc()}'
