@@ -492,7 +492,7 @@ class Controller(eFMU):
                     self.log_results()
 
                 self.init = True
-                self.msg += self.standard_report(self.res)
+                #self.msg += self.standard_report(self.res)
 
         except Exception as e:
             self.msg += f'\nERROR: {e}\n\n{traceback.format_exc()}'
