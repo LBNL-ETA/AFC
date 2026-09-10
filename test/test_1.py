@@ -76,6 +76,7 @@ def test1():
 
     # Query controller
     print(ctrl.do_step(inputs=inputs))
+    print(ctrl.standard_report(ctrl.res))
     df_res = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
 
     # check overall
@@ -124,6 +125,7 @@ def test2():
 
         # Query controller
         print(ctrl.do_step(inputs=inputs))
+        print(ctrl.standard_report(ctrl.res))
         df_res = pd.read_json(io.StringIO(ctrl.get_output(keys=['output-data'])['output-data']))
 
         # check overall
