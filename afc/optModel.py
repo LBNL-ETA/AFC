@@ -347,12 +347,19 @@ def add_thermal(model, inputs, parameter):
     ix_night = inputs.index[inputs[[c for c in inputs.columns \
                                     if ('wpi_' in c or 'tsol_' in c) \
                                     and not 'min' in c]].sum(axis=1) == 0]
-    bin_clear = [0]*(len(model.fstates)-1)+[1]
-    bin_fixed = [True]*len(model.fstates)
+    night_state = parameter['facade']['fstate_night']
+    if night_state is False:
+        bin_night = [1 if s == max(model.fstates) else 0 for s in model.fstates]
+        bin_fixed = [False] * len(model.fstates)
+    else:
+        if night_state is None:
+            night_state = max(model.fstates)
+        bin_night = [1 if s == night_state else 0 for s in model.fstates]
+        bin_fixed = [True] * len(model.fstates)
     for ts in ix_night:
         for fzone in model.fzones:
             for s in model.fstates:
-                model.fstate_bin[ts, fzone, s] = bin_clear[s]
+                model.fstate_bin[ts, fzone, s] = bin_night[s]
                 model.fstate_bin[ts, fzone, s].fixed = bin_fixed[s]
 
     # Electricity

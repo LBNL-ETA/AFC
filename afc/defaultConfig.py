@@ -94,6 +94,7 @@ def get_facade_config(parameter, facade_type='ec-71t', window_area=2.56*2.78):
     # other configuration
     parameter['facade']['convection_window_scale'] = 4 # From model; only for R6C3
     parameter['facade']['convection_window_offset'] = 4 # From model; only for R6C3
+    parameter['facade']['fstate_night'] = None # None pins clearest (max) state at night
 
     # window area
     parameter['facade']['window_area'] = window_area # in m2
