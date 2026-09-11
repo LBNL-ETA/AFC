@@ -272,7 +272,7 @@ class Controller(eFMU):
                 pyomo_logger = \
                     logging.WARNING if self.parameter['wrapper']['printing'] else \
                         logging.ERROR
-                self.tariff = self.get_tariff(self.parameter['wrapper']['tariff_name'])
+                self.tariff = self.get_tariff(self.parameter['site']['tariff_name'])
                 output_list = self.parameter['wrapper']['output_list']
                 self.controller = self.doper(model=self.control_model,
                                              parameter=self.parameter,

@@ -8,7 +8,7 @@ Default configuration.
 """
 
 # pylint: disable=too-many-arguments, bare-except, too-many-locals, too-many-positional-arguments
-# pylint: disable=invalid-name, dangerous-default-value, unused-argument
+# pylint: disable=invalid-name, dangerous-default-value, unused-argument, too-many-statements
 
 import os
 import sys
@@ -30,6 +30,39 @@ except:
     root = os.getcwd()
 
 FT_TO_M = 0.3048
+
+# Maps integer UTC offset (standard time) to the most canonical DST-observing timezone.
+# Offsets without a DST zone are absent; callers fall back to Etc/GMT±N for those.
+_UTC_OFFSET_TO_TIMEZONE = {
+    -10: 'America/Adak',
+    -9: 'America/Anchorage',
+    -8: 'America/Los_Angeles',
+    -7: 'America/Denver',
+    -6: 'America/Chicago',
+    -5: 'America/New_York',
+    -4: 'America/Halifax',
+    -3: 'America/Miquelon',
+    -2: 'America/Nuuk',
+    -1: 'Atlantic/Azores',
+    0: 'Europe/London',
+    1: 'Europe/Paris',
+    2: 'Europe/Helsinki',
+    6: 'Asia/Almaty',
+    11: 'Australia/Sydney',
+    12: 'Pacific/Norfolk',
+    13: 'Pacific/Auckland',
+}
+
+def get_local_timezone(input_timezone):
+    """Return the canonical DST-observing timezone for a standard-time UTC offset integer.
+
+    Falls back to the fixed Etc/GMT offset if no DST zone exists for that offset.
+    """
+    if input_timezone in _UTC_OFFSET_TO_TIMEZONE:
+        return _UTC_OFFSET_TO_TIMEZONE[input_timezone]
+    # Etc/GMT uses the POSIX sign convention: Etc/GMT+8 is UTC-8
+    sign = '+' if input_timezone <= 0 else '-'
+    return f'Etc/GMT{sign}{abs(input_timezone)}'
 
 _AFC_SYSTEMS_PATH = os.path.join(root, 'resources', 'radiance', 'afc_systems.json')
 with open(_AFC_SYSTEMS_PATH, 'r', encoding='utf-8') as _f:
@@ -310,6 +343,11 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     #parameter['solver_options']['dualB'] = 1e-7
     parameter['site']['import_max'] = 1e9 # Disable import limit
     parameter['site']['export_max'] = 1e9 # Disable export limit
+    # timezone of input data as integer UTC offset (derived from Radiance timezone in degrees west)
+    parameter['site']['input_timezone'] = -(timezone // 15)
+    # local timezone string for tariff period mapping, derived from input_timezone
+    parameter['site']['local_timezone'] = get_local_timezone(parameter['site']['input_timezone'])
+    parameter['site']['tariff_name'] = tariff_name
 
     # Defaults for wrapper
     parameter['wrapper'] = {}
@@ -337,7 +375,6 @@ def default_parameter(tariff_name='e19-2020', hvac_control=True,
     parameter['wrapper']['sp_processor'] = None
     output_list = default_output_list(parameter) + afc_output_list()
     parameter['wrapper']['output_list'] = output_list
-    parameter['wrapper']['tariff_name'] = tariff_name
     parameter['wrapper']['compute_loads'] = False
     parameter['wrapper']['use_fallback'] = True
     parameter['wrapper']['keep_input_data'] = True # keep the mpc input data in output df
