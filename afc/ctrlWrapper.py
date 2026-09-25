@@ -446,7 +446,7 @@ class Controller(eFMU):
                                                     print_error=printing)
                 duration, objective, df, model, result, termination, parameter = self.res
                 if df.empty:
-                    df = df.reindex(data.index).fillna(-1)
+                    df = df.reindex(data.index).infer_objects(copy=False).fillna(-1)
                 df = pd.concat([df, data], axis=1)
                 out_duration['optall'] = time.time() - st1
 
