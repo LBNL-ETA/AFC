@@ -19,6 +19,7 @@ The documentation for `system`, `controller`, `solver_options`, `objective`, `si
 
 ## 2. Defining `parameter['facade']`
 This dictionary contains data needed to characterize the building and facade system:
+- `clip_ev_to_noglare`: [bool] When `True`, the `glare_max` time-series constraint is raised at each timestep so it is never tighter than the glare produced by the darkest (most tinted) window state. This prevents the optimizer from becoming infeasible on timesteps where even a fully tinted facade cannot satisfy an over-restrictive `glare_max`. The effective floor is computed as `sum(ev_{nz}_{t0} for all zones nz) * 6.22e-5 + 0.184`, where `t0` is the first entry of `logical_window_states`. Default value is `True`.
 - `convection_window_offset`: [float] Window convection quantity offset. Default value is 4.
 - `convection_window_scale`: [float] Window convection quantity scale. Default value is 4.
 - `fstate_initial`: [list] Initial state of each facade zone. Note: only available if the type is `'ec-71t'`. Default value is [3, 3, 3].

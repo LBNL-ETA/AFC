@@ -348,6 +348,18 @@ class Controller(eFMU):
                 data['battery_0_demand'] = 0
                 data['battery_reg'] = 0
 
+                # Clip glare_max to darkest window state if enabled
+                if self.parameter['facade'].get('clip_ev_to_noglare', True):
+                    t0 = self.parameter['facade']['logical_window_states'][0]
+                    ev_darkest = sum(
+                        data[f'ev_{nz}_{t0}']
+                        for nz in self.parameter['facade']['logical_windows']
+                    )
+                    glare_darkest = ev_darkest * 6.22e-5 + 0.184
+                    data['glare_max'] = np.maximum(
+                        data['glare_max'], glare_darkest
+                    )
+
                 # Update initial states
                 if isinstance(self.input['temps-initial'], str):
                     self.input['temps-initial'] = json.loads(self.input['temps-initial'])
