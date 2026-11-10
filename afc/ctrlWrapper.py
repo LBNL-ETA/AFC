@@ -355,7 +355,7 @@ class Controller(eFMU):
                         data[f'ev_{nz}_{t0}']
                         for nz in self.parameter['facade']['logical_windows']
                     )
-                    glare_darkest = ev_darkest * 6.22e-5 + 0.184
+                    glare_darkest = ev_darkest * 6.22e-5 + 0.184 + 1e-3 # buffer
                     data['glare_max'] = np.maximum(
                         data['glare_max'], glare_darkest
                     )
